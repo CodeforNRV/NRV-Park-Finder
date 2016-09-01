@@ -1,0 +1,11 @@
+css/bootstrap*
+fonts/*
+images/*
+config
+js/leaflet/*
+js/bootstrap*
+js/npm.js
+*.pyc
+css/l.*
+js/l.*
+img/*

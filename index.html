@@ -1,0 +1,171 @@
+<html>
+  <head>
+    <link rel="stylesheet" href="js/leaflet/leaflet.css" />
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/bootstrap-theme.min.css">
+    <link rel="stylesheet" href="css/l.geosearch.css" />
+    <script src="https://npmcdn.com/leaflet@1.0.0-rc.2/dist/leaflet.js"></script>
+    <script src="js/l.control.geosearch.js"></script>
+    <script src="js/l.geosearch.provider.openstreetmap.js"></script>
+    <!--script type="text/javascript" src="js/lib/leaflet/leaflet.js"></script-->
+    <title></title>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style></style>
+  </head>
+  <body>
+  <div class="container">
+    <div id="x" style="display:none;"></div>
+    <div class="row">
+      <div class="col-md-6">
+        <form class="form-horizontal">
+            <div class="form-group">
+              <legend>
+                Your Location
+              </legend>
+              <div style="display:none;">
+                <input type="checkbox" id="location" disabled="disabled" name="location"> Use my location
+              </div>
+              <label for="address">Address</label>
+                <input type="text" class="form-control" id="address" placeholder="Your Address">
+              <button type="button" id="updateMap" class="btn btn-primary">Update Map</button>
+            </div>
+            <div class="form-group">
+              <legend>
+                Amenities
+              </legend>
+              <div id="amenities">
+              </div>
+            </div>
+        </form>
+      </div>
+      <div class="col-md-6">
+        <div id='mapid' style='height: 480px;'></div>
+      </div>
+    </div>
+  </div>
+  <div></div>
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+  <script src="js/bootstrap.min.js"></script>
+  <script type="text/javascript">
+
+    var coordinates = [37.2253366,-80.4316803 ] //latitude, longitude
+
+    function getLocation() {
+        x.innerHTML = "entered getLocation()"
+        if (navigator.geolocation) {
+            x.innerHTML += 1;
+            navigator.geolocation.getCurrentPosition(showPosition, showError);
+        } else {
+            x.innerHTML += 2;
+            x.innerHTML += "Geolocation is not supported by this browser.";
+        }
+    }
+
+    function showPosition(position) {
+        console.log(3);
+        $("#location").show();
+        $("#location").enable();
+        coordinates = [position.coords.latitude, position.coords.longitude]
+        x.innerHTML += "Latitude: " + position.coords.latitude +
+        "<br>Longitude: " + position.coords.longitude;
+        byLocation.style.display = 'block';
+        L.marker(coordinates).addTo(map)
+          .bindPopup('You are here.')
+          .openPopup();
+    }
+
+    function showError(error) {
+        switch(error.code) {
+            case error.PERMISSION_DENIED:
+                x.innerHTML += "User denied the request for Geolocation.";
+                break;
+            case error.POSITION_UNAVAILABLE:
+                x.innerHTML += "Location information is unavailable.";
+                break;
+            case error.TIMEOUT:
+                x.innerHTML += "The request to get user location timed out.";
+                break;
+            case error.UNKNOWN_ERROR:
+                x.innerHTML += "An unknown error occurred.";
+                break;
+        }
+    }
+
+    function loadAmenities() {
+      [
+        [1, 'Playground'],
+        [2, 'Picnic'],
+        [3, 'Basketball'],
+        [4, 'Soccer Fields'],
+        [5, 'Tennis Courts'],
+        [6, 'Skate Park'],
+        [7, 'Horseshoe Pits']
+      ].map(addAmenity)
+    }
+
+    function addAmenity(amenity) {
+      id = amenity[0]
+      name = amenity[1]
+      container = $("#amenities")
+      $('<input />', { type: 'checkbox', id: 'cb'+id, value: name }).appendTo(container);
+      $('<label />', { 'for': 'cb'+id, text: name }).appendTo(container);
+      $('<br />', { 'for': 'cb'+id, text: name }).appendTo(container);
+    }
+
+    function updateMap(map, search, address) {
+      var parkCoordinates = [];
+
+      search.geosearch(address);
+      getParks([],coordinates).map(function(park) {
+        var marker = L.marker(park.center).addTo(map);
+        parkCoordinates.push(marker);
+      });
+
+      var group = new L.featureGroup(parkCoordinates);
+      map.fitBounds(group.getBounds());
+    }
+
+    function getParks(amenities, coordinates) {
+      return allParks;
+    }
+
+    var allParks = [
+      {id: 1, name: 'Brookfield Village', center: [37.249584, -80.429809]},
+      {id: 1, name: 'Cedar Hill Park', center: [37.2039138,-80.3943793]},
+      {id: 1, name: 'Crestview Tot Lot Playground', center: [37.221648, -80.396510]},
+      {id: 1, name: 'Dehart Street Tot Lot Park', center: [37.210059, -80.406139]},
+      {id: 1, name: 'Dog Park', center: [37.253124,-80.4356664]}
+    ];
+
+    $(document).ready(function() {
+      var map = L.map('mapid').setView(coordinates, 13);
+      var x = document.getElementById("x");
+      var byLocation = document.getElementById("byLocation");
+      var provider = new L.GeoSearch.Provider.OpenStreetMap();
+      var search = new L.Control.GeoSearch({
+          provider: provider
+      });
+      search.addTo(map);
+
+      L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
+          attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+      }).addTo(map);
+
+      $('#updateMap').on('click', function() {
+        updateMap(map, search, $('#address').val())
+      });
+
+      map.on('geosearch_showlocation', function (result) {
+          coordinates = [result.Location.Y, result.Location.X]
+          console.log(coordinates);
+      });
+
+      loadAmenities();
+      getLocation();
+    });
+  </script>
+  </body>
+</html>
