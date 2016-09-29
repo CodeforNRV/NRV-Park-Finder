@@ -15,14 +15,14 @@
     <style></style>
   </head>
   <body>
-  <div class="container">
+  <div class="container" id="search">
     <div id="x" style="display:none;"></div>
     <div class="row">
       <div class="col-md-6">
         <form class="form-horizontal">
             <div class="form-group">
               <legend>
-                Your Location
+                Your Location_
               </legend>
               <div style="display:none;">
                 <input type="checkbox" id="location" disabled="disabled" name="location"> Use my location
@@ -40,18 +40,31 @@
             </div>
         </form>
       </div>
-      <div class="col-md-6">
-        <div id='mapid' style='height: 480px;'></div>
-      </div>
     </div>
   </div>
-  <div></div>
+  <div id='map'>
+    <div id='mapid' style='height: 100%;'></div>
+  </div>
+    <div id='wait' style='height:100%;'></div>
+  </div>
 
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
   <script src="js/bootstrap.min.js"></script>
   <script type="text/javascript">
 
     var coordinates = [37.2253366,-80.4316803 ] //latitude, longitude
+
+    $( document ).ajaxStart(function() {
+      $("#wait").show();
+    });
+
+    $( document ).ajaxComplete(function() {
+      $("#wait").hide();
+    });
+
+    $( document ).ajaxError(function() {
+      $("#wait").hide();
+    });
 
     function getLocation() {
         x.innerHTML = "entered getLocation()"
@@ -95,6 +108,7 @@
     }
 
     function loadAmenities() {
+      /*
       [
         [1, 'Playground'],
         [2, 'Picnic'],
@@ -103,7 +117,19 @@
         [5, 'Tennis Courts'],
         [6, 'Skate Park'],
         [7, 'Horseshoe Pits']
-      ].map(addAmenity)
+      ].map(addAmenity)*/
+      var amenities = [];
+      $.ajax("http://parks.api.codefornrv.org/amenity_type",{
+        dataType:"json",
+        async: true,
+        success: function(data) {
+          //console.log(data);
+          data.map(function(amenity) {
+            amenities.push([amenity.id, amenity.amenity_name]);
+          });
+          amenities.map(addAmenity);
+        }
+      });
     }
 
     function addAmenity(amenity) {
@@ -116,20 +142,61 @@
     }
 
     function updateMap(map, search, address) {
-      var parkCoordinates = [];
+      map.parkCoordinates = [];
+
+      $("#map").show();
+      map.invalidateSize();
+      $("#search").hide();
 
       search.geosearch(address);
-      getParks([],coordinates).map(function(park) {
+      /*getParks([],coordinates).map(function(park) {
         var marker = L.marker(park.center).addTo(map);
-        parkCoordinates.push(marker);
-      });
+        map.parkCoordinates.push(marker);
+      });*/
+      getParks(map, [],coordinates);
 
-      var group = new L.featureGroup(parkCoordinates);
-      map.fitBounds(group.getBounds());
+      //var group = new L.featureGroup(parkCoordinates);
+      //map.fitBounds(group.getBounds());
+      //setTimeout(function(){ map.fitBounds(group.getBounds()); }, 3000);
+      //map.group = group;
     }
 
-    function getParks(amenities, coordinates) {
-      return allParks;
+    function getParks(map, amenities, coordinates) {
+      var parks = []
+      $.ajax("http://parks.api.codefornrv.org/parks",{
+        dataType:"json",
+        async: true,
+        success: function(data) {
+          //console.log(data);
+          data.map(function(park) {
+            park.popup = {};
+            park.popup["Directions"] = "<a target='_blank' href=\"https://www.google.com/maps/dir/'"+coordinates[0]+","+coordinates[1]+"'/37.249584,-80.429809/\">click for directions</a>";
+            park.popup["Name"] = park.park_name;
+            var names = [];
+            park.alternate_names.names.map(function(name) {
+              names.push(name.name);
+            });
+            park.popup["Alternative Names"] = names.toString();
+            park.popup["Description"] = park.description;
+            park.popup["Address"] = park.address;
+            park.popup["Website"] = "<a target='_blank' href='"+park.url+"'>click here</a>";
+            parks.push({id: park.id, name: park.park_name, center: [37.249584, -80.429809], popup: park.popup});
+          });
+          parks.map(function(park) {
+            var marker = L.marker(park.center).addTo(map);
+            var parkText = "<dl>";
+            Object.keys(park.popup).map(function(key) {
+              parkText += "<dt>"+key+"</dt>";
+              parkText += "<dd>"+park.popup[key]+"</dd>";
+            });
+            parkText += "</dl>"
+            marker.bindPopup(parkText);
+            map.parkCoordinates.push(marker);
+          });
+        }
+      });
+      console.log(parks);
+      return parks;
     }
 
     var allParks = [
@@ -142,11 +209,14 @@
 
     $(document).ready(function() {
       var map = L.map('mapid').setView(coordinates, 13);
+      map.addControl(new customControl());
+      $("#map").hide();
       var x = document.getElementById("x");
       var byLocation = document.getElementById("byLocation");
       var provider = new L.GeoSearch.Provider.OpenStreetMap();
       var search = new L.Control.GeoSearch({
-          provider: provider
+          provider: provider,
+          showPopup: true
       });
       search.addTo(map);
 
@@ -161,10 +231,47 @@
       map.on('geosearch_showlocation', function (result) {
           coordinates = [result.Location.Y, result.Location.X]
           console.log(coordinates);
+          //console.log(map.group);
+          //setTimeout(function() {map.fitBounds(map.group.getBounds());},1000);
+          //map.fitBounds(map.group.getBounds());
+          map.parkCoordinates.push(result.Marker);
+          result.Marker.bindPopup("Your location:  '"+$("#address").val()+"'");
+          setTimeout(function() {map.fireEvent('geosearch_groups_updated'); },500);
+      });
+
+      map.on('geosearch_groups_updated', function() {
+        console.log("fired");
+        var group = new L.featureGroup(map.parkCoordinates);
+        map.fitBounds(group.getBounds(),{padding:[50,50]});
       });
 
       loadAmenities();
       getLocation();
+    });
+
+    var customControl = L.Control.extend({
+
+      options: {
+        position: 'topleft'
+        //control position - allowed: 'topleft', 'topright', 'bottomleft', 'bottomright'
+      },
+
+      onAdd: function (map) {
+        var container = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom');
+        container.innerHTML = '<button type="button" class="btn btn-primary">Back to Search</button>';
+
+        container.style.backgroundColor = 'white';
+        container.style.width = '100px';
+        container.style.height = '30px';
+
+        container.onclick = function(){
+          console.log('buttonClicked');
+          $("#map").hide();
+          $("#search").show();
+        }
+        return container;
+      },
+
     });
   </script>
   </body>
