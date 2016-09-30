@@ -1,0 +1,197 @@
+<html>
+  <head>
+    <link rel="stylesheet" href="js/leaflet/leaflet.css" />
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/bootstrap-theme.min.css">
+    <link rel="stylesheet" href="css/l.geosearch.css" />
+    <script src="https://npmcdn.com/leaflet@1.0.0-rc.2/dist/leaflet.js"></script>
+    <script src="js/l.control.geosearch.js"></script>
+    <script src="js/l.geosearch.provider.openstreetmap.js"></script>
+    <title></title>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style></style>
+  </head>
+  <body>
+  <div id='map'>
+    <div id='mapid' style='height: 100%;'></div>
+  </div>
+    <div id='wait' style='height:100%;'></div>
+  </div>
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+  <script src="js/bootstrap.min.js"></script>
+  <script type="text/javascript">
+
+    var coordinates = [37.2253366,-80.4316803 ] //latitude, longitude
+    var address = "";
+
+    function getUrlVars() {
+      // thanks http://papermashup.com/read-url-get-variables-withjavascript/
+      var vars = {};
+      var parts = window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi, function(m,key,value) {
+          vars[key] = decodeURIComponent(value.replace(/\+/g," "));
+      });
+      return vars;
+    }
+
+    $( document ).ajaxStart(function() {
+      $("#map").hide();
+      $("#wait").show();
+    });
+
+    $( document ).ajaxComplete(function() {
+      $("#wait").hide();
+      $("#map").show();
+    });
+
+    $( document ).ajaxError(function() {
+      $("#wait").hide();
+      $("#map").hide();
+    });
+
+    function updateMap(map, search) {
+      map.parkCoordinates = [];
+
+      $("#map").show();
+      map.invalidateSize();
+      $("#search").hide();
+      var getVars = getUrlVars();
+
+      for (var property in getVars) {
+        console.log(property);
+        if(property == "address") {
+          address = getVars[property];
+        } else {
+          // handle amenities
+        }
+      }
+
+      if(address == "") {
+        window.location="index.html";
+      }
+
+      console.log(address);
+      search.geosearch(address);
+      /*getParks([],coordinates).map(function(park) {
+        var marker = L.marker(park.center).addTo(map);
+        map.parkCoordinates.push(marker);
+      });*/
+      getParks(map, [],coordinates);
+
+      //var group = new L.featureGroup(parkCoordinates);
+      //map.fitBounds(group.getBounds());
+      //setTimeout(function(){ map.fitBounds(group.getBounds()); }, 3000);
+      //map.group = group;
+    }
+
+    function getParks(map, amenities, coordinates) {
+      var parks = []
+      $.ajax("http://parks.api.codefornrv.org/parks",{
+        dataType:"json",
+        async: true,
+        success: function(data) {
+          //console.log(data);
+          data.map(function(park) {
+            park.popup = {};
+            park.popup["Directions"] = "<a target='_blank' href=\"https://www.google.com/maps/dir/'"+coordinates[0]+","+coordinates[1]+"'/37.249584,-80.429809/\">click for directions</a>";
+            park.popup["Name"] = park.park_name;
+            var names = [];
+            park.alternate_names.names.map(function(name) {
+              names.push(name.name);
+            });
+            park.popup["Alternative Names"] = names.toString();
+            park.popup["Description"] = park.description;
+            park.popup["Address"] = park.address;
+            park.popup["Website"] = "<a target='_blank' href='"+park.url+"'>click here</a>";
+            parks.push({id: park.id, name: park.park_name, center: [37.249584, -80.429809], popup: park.popup});
+          });
+          parks.map(function(park) {
+            var marker = L.marker(park.center).addTo(map);
+            var parkText = "<dl>";
+            Object.keys(park.popup).map(function(key) {
+              parkText += "<dt>"+key+"</dt>";
+              parkText += "<dd>"+park.popup[key]+"</dd>";
+            });
+            parkText += "</dl>"
+            marker.bindPopup(parkText);
+            map.parkCoordinates.push(marker);
+          });
+        }
+      });
+      console.log(parks);
+      return parks;
+    }
+
+    var allParks = [
+      {id: 1, name: 'Brookfield Village', center: [37.249584, -80.429809]},
+      {id: 1, name: 'Cedar Hill Park', center: [37.2039138,-80.3943793]},
+      {id: 1, name: 'Crestview Tot Lot Playground', center: [37.221648, -80.396510]},
+      {id: 1, name: 'Dehart Street Tot Lot Park', center: [37.210059, -80.406139]},
+      {id: 1, name: 'Dog Park', center: [37.253124,-80.4356664]}
+    ];
+
+    $(document).ready(function() {
+      var map = L.map('mapid').setView(coordinates, 13);
+      map.addControl(new customControl());
+      $("#map").hide();
+      var x = document.getElementById("x");
+      var byLocation = document.getElementById("byLocation");
+      var provider = new L.GeoSearch.Provider.OpenStreetMap();
+      var search = new L.Control.GeoSearch({
+          provider: provider,
+          showPopup: true
+      });
+      search.addTo(map);
+
+      L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
+          attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+      }).addTo(map);
+
+      map.on('geosearch_showlocation', function (result) {
+          coordinates = [result.Location.Y, result.Location.X]
+          console.log(coordinates);
+          //console.log(map.group);
+          //setTimeout(function() {map.fitBounds(map.group.getBounds());},1000);
+          //map.fitBounds(map.group.getBounds());
+          map.parkCoordinates.push(result.Marker);
+          result.Marker.bindPopup("Your location:  '"+address+"'");
+          setTimeout(function() {map.fireEvent('geosearch_groups_updated'); },500);
+      });
+
+      map.on('geosearch_groups_updated', function() {
+        console.log("fired");
+        var group = new L.featureGroup(map.parkCoordinates);
+        map.fitBounds(group.getBounds(),{padding:[50,50]});
+      });
+
+      updateMap(map, search)
+    });
+
+    var customControl = L.Control.extend({
+
+      options: {
+        position: 'topleft'
+        //control position - allowed: 'topleft', 'topright', 'bottomleft', 'bottomright'
+      },
+
+      onAdd: function (map) {
+        var container = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom');
+        container.innerHTML = '<button type="button" class="btn btn-primary">Back to Search</button>';
+
+        container.style.backgroundColor = 'white';
+        container.style.width = '100px';
+        container.style.height = '30px';
+
+        container.onclick = function(){
+          console.log('buttonClicked');
+          window.location = 'index.html';
+        }
+        return container;
+      },
+
+    });
+  </script>
+  </body>
+</html>

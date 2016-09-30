@@ -1,13 +1,7 @@
 <html>
   <head>
-    <link rel="stylesheet" href="js/leaflet/leaflet.css" />
     <link rel="stylesheet" href="css/bootstrap.min.css">
     <link rel="stylesheet" href="css/bootstrap-theme.min.css">
-    <link rel="stylesheet" href="css/l.geosearch.css" />
-    <script src="https://npmcdn.com/leaflet@1.0.0-rc.2/dist/leaflet.js"></script>
-    <script src="js/l.control.geosearch.js"></script>
-    <script src="js/l.geosearch.provider.openstreetmap.js"></script>
-    <!--script type="text/javascript" src="js/lib/leaflet/leaflet.js"></script-->
     <title></title>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -19,17 +13,17 @@
     <div id="x" style="display:none;"></div>
     <div class="row">
       <div class="col-md-6">
-        <form class="form-horizontal">
+        <form method="get" action="search" class="form-horizontal">
             <div class="form-group">
               <legend>
-                Your Location_
+                Your Location
               </legend>
               <div style="display:none;">
                 <input type="checkbox" id="location" disabled="disabled" name="location"> Use my location
               </div>
               <label for="address">Address</label>
-                <input type="text" class="form-control" id="address" placeholder="Your Address">
-              <button type="button" id="updateMap" class="btn btn-primary">Update Map</button>
+                <input type="text" class="form-control" id="address" name="address" placeholder="Your Address">
+              <input type="submit" id="updateMap" class="btn btn-primary" value="Update Map" />
             </div>
             <div class="form-group">
               <legend>
@@ -42,11 +36,7 @@
       </div>
     </div>
   </div>
-  <div id='map'>
-    <div id='mapid' style='height: 100%;'></div>
-  </div>
-    <div id='wait' style='height:100%;'></div>
-  </div>
+  <div id='wait' style='height:100%;'></div>
 
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
   <script src="js/bootstrap.min.js"></script>
@@ -85,9 +75,6 @@
         x.innerHTML += "Latitude: " + position.coords.latitude +
         "<br>Longitude: " + position.coords.longitude;
         byLocation.style.display = 'block';
-        L.marker(coordinates).addTo(map)
-          .bindPopup('You are here.')
-          .openPopup();
     }
 
     function showError(error) {
@@ -136,142 +123,16 @@
       id = amenity[0]
       name = amenity[1]
       container = $("#amenities")
-      $('<input />', { type: 'checkbox', id: 'cb'+id, value: name }).appendTo(container);
+      $('<input />', { type: 'checkbox', id: 'cb'+id, name: 'cb'+id, value: 't' }).appendTo(container);
       $('<label />', { 'for': 'cb'+id, text: name }).appendTo(container);
       $('<br />', { 'for': 'cb'+id, text: name }).appendTo(container);
     }
 
-    function updateMap(map, search, address) {
-      map.parkCoordinates = [];
-
-      $("#map").show();
-      map.invalidateSize();
-      $("#search").hide();
-
-      search.geosearch(address);
-      /*getParks([],coordinates).map(function(park) {
-        var marker = L.marker(park.center).addTo(map);
-        map.parkCoordinates.push(marker);
-      });*/
-      getParks(map, [],coordinates);
-
-      //var group = new L.featureGroup(parkCoordinates);
-      //map.fitBounds(group.getBounds());
-      //setTimeout(function(){ map.fitBounds(group.getBounds()); }, 3000);
-      //map.group = group;
-    }
-
-    function getParks(map, amenities, coordinates) {
-      var parks = []
-      $.ajax("http://parks.api.codefornrv.org/parks",{
-        dataType:"json",
-        async: true,
-        success: function(data) {
-          //console.log(data);
-          data.map(function(park) {
-            park.popup = {};
-            park.popup["Directions"] = "<a target='_blank' href=\"https://www.google.com/maps/dir/'"+coordinates[0]+","+coordinates[1]+"'/37.249584,-80.429809/\">click for directions</a>";
-            park.popup["Name"] = park.park_name;
-            var names = [];
-            park.alternate_names.names.map(function(name) {
-              names.push(name.name);
-            });
-            park.popup["Alternative Names"] = names.toString();
-            park.popup["Description"] = park.description;
-            park.popup["Address"] = park.address;
-            park.popup["Website"] = "<a target='_blank' href='"+park.url+"'>click here</a>";
-            parks.push({id: park.id, name: park.park_name, center: [37.249584, -80.429809], popup: park.popup});
-          });
-          parks.map(function(park) {
-            var marker = L.marker(park.center).addTo(map);
-            var parkText = "<dl>";
-            Object.keys(park.popup).map(function(key) {
-              parkText += "<dt>"+key+"</dt>";
-              parkText += "<dd>"+park.popup[key]+"</dd>";
-            });
-            parkText += "</dl>"
-            marker.bindPopup(parkText);
-            map.parkCoordinates.push(marker);
-          });
-        }
-      });
-      console.log(parks);
-      return parks;
-    }
-
-    var allParks = [
-      {id: 1, name: 'Brookfield Village', center: [37.249584, -80.429809]},
-      {id: 1, name: 'Cedar Hill Park', center: [37.2039138,-80.3943793]},
-      {id: 1, name: 'Crestview Tot Lot Playground', center: [37.221648, -80.396510]},
-      {id: 1, name: 'Dehart Street Tot Lot Park', center: [37.210059, -80.406139]},
-      {id: 1, name: 'Dog Park', center: [37.253124,-80.4356664]}
-    ];
-
     $(document).ready(function() {
-      var map = L.map('mapid').setView(coordinates, 13);
-      map.addControl(new customControl());
-      $("#map").hide();
       var x = document.getElementById("x");
       var byLocation = document.getElementById("byLocation");
-      var provider = new L.GeoSearch.Provider.OpenStreetMap();
-      var search = new L.Control.GeoSearch({
-          provider: provider,
-          showPopup: true
-      });
-      search.addTo(map);
-
-      L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
-          attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
-      }).addTo(map);
-
-      $('#updateMap').on('click', function() {
-        updateMap(map, search, $('#address').val())
-      });
-
-      map.on('geosearch_showlocation', function (result) {
-          coordinates = [result.Location.Y, result.Location.X]
-          console.log(coordinates);
-          //console.log(map.group);
-          //setTimeout(function() {map.fitBounds(map.group.getBounds());},1000);
-          //map.fitBounds(map.group.getBounds());
-          map.parkCoordinates.push(result.Marker);
-          result.Marker.bindPopup("Your location:  '"+$("#address").val()+"'");
-          setTimeout(function() {map.fireEvent('geosearch_groups_updated'); },500);
-      });
-
-      map.on('geosearch_groups_updated', function() {
-        console.log("fired");
-        var group = new L.featureGroup(map.parkCoordinates);
-        map.fitBounds(group.getBounds(),{padding:[50,50]});
-      });
-
       loadAmenities();
       getLocation();
-    });
-
-    var customControl = L.Control.extend({
-
-      options: {
-        position: 'topleft'
-        //control position - allowed: 'topleft', 'topright', 'bottomleft', 'bottomright'
-      },
-
-      onAdd: function (map) {
-        var container = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom');
-        container.innerHTML = '<button type="button" class="btn btn-primary">Back to Search</button>';
-
-        container.style.backgroundColor = 'white';
-        container.style.width = '100px';
-        container.style.height = '30px';
-
-        container.onclick = function(){
-          console.log('buttonClicked');
-          $("#map").hide();
-          $("#search").show();
-        }
-        return container;
-      },
-
     });
   </script>
   </body>
