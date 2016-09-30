@@ -13,7 +13,7 @@
     <div id="x" style="display:none;"></div>
     <div class="row">
       <div class="col-md-6">
-        <form method="get" action="search" class="form-horizontal">
+        <form method="get" action="search.html" class="form-horizontal">
             <div class="form-group">
               <legend>
                 Your Location
@@ -36,7 +36,7 @@
       </div>
     </div>
   </div>
-  <div id='wait' style='height:100%;'></div>
+  <div id='wait' style='height:100%;'>Please wait...</div>
 
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
   <script src="js/bootstrap.min.js"></script>
@@ -46,14 +46,17 @@
 
     $( document ).ajaxStart(function() {
       $("#wait").show();
+      $("#search").hide();
     });
 
     $( document ).ajaxComplete(function() {
       $("#wait").hide();
+      $("#search").show();
     });
 
     $( document ).ajaxError(function() {
       $("#wait").hide();
+      $("#search").show();
     });
 
     function getLocation() {
@@ -108,7 +111,6 @@
       var amenities = [];
       $.ajax("http://parks.api.codefornrv.org/amenity_type",{
         dataType:"json",
-        async: true,
         success: function(data) {
           //console.log(data);
           data.map(function(amenity) {
