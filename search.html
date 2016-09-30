@@ -17,8 +17,8 @@
   <div id='map'>
     <div id='mapid' style='height: 100%;'></div>
   </div>
-    <div id='wait' style='height:100%;'>Please wait...</div>
-  </div>
+  <div id='wait' style='height:100%;'>Please wait...</div>
+  <div id='infoPane' style='height:100%;'><div id="parkInfo"></div><button type="buttom" id="showMap" class="btn btn-primary">Back to Map</button></div>
 
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
   <script src="js/bootstrap.min.js"></script>
@@ -26,6 +26,7 @@
 
     var coordinates = [37.2253366,-80.4316803 ] //latitude, longitude
     var address = "";
+    var map;
 
     function getUrlVars() {
       // thanks http://papermashup.com/read-url-get-variables-withjavascript/
@@ -34,6 +35,23 @@
           vars[key] = decodeURIComponent(value.replace(/\+/g," "));
       });
       return vars;
+    }
+    
+    function mapLocation (result) {
+      var marker = L.marker(coordinates).addTo(map);
+    }
+    
+    function showInfo() {
+      console.log("showing information");
+      $("#infoPane").show();
+      $(".parkInfo").hide();
+      $("#map").hide();
+    }
+    
+    function hideInfo() {
+      console.log("showing information");
+      $("#infoPane").hide();
+      $("#map").show();
     }
 
     $( document ).ajaxStart(function() {
@@ -51,8 +69,14 @@
       $("#map").hide();
     });
 
+    $("#showMap").click(hideInfo);
+    $(document).on('click',".showInfo",function(e) {
+      showInfo();
+      console.log(e.target);
+      $("#info"+e.target.id).show();
+    });
+    
     function updateMap(map, search) {
-      map.parkCoordinates = [];
 
       $("#map").show();
       map.invalidateSize();
@@ -68,12 +92,24 @@
         }
       }
 
-      if(address == "") {
+      /*if(address == "") {
         window.location="index.html";
-      }
+      }*/
 
-      console.log(address);
-      search.geosearch(address);
+      if(getVars['location']) {
+        coordinates=[getVars['lat'],getVars['lon']];
+        /*address = coordinates;
+        var result = {};
+        result["Location"] = {};
+        result["Location"]["Y"] = getVars['lat'];
+        result["Location"]["X"] = getVars['lon'];*/
+        var marker = L.marker(coordinates);
+        marker.addTo(map).bindPopup("Your Location").openPopup();
+        map.parkCoordinates.push(marker);
+        //map.fireEvent('geosearch_showlocation');
+      } else {
+        search.geosearch(address);
+      }      
       /*getParks([],coordinates).map(function(park) {
         var marker = L.marker(park.center).addTo(map);
         map.parkCoordinates.push(marker);
@@ -88,10 +124,10 @@
 
     function getParks(map, amenities, coordinates) {
       var parks = []
-      $.ajax("http://parks.api.codefornrv.org/parks",{
+      //$.ajax("http://parks.api.codefornrv.org/parks",{
+      $.ajax("parks_placeholder",{
         dataType:"json",
         success: function(data) {
-          //console.log(data);
           data.map(function(park) {
             park.popup = {};
             park.popup["Directions"] = "<a target='_blank' href=\"https://www.google.com/maps/dir/'"+coordinates[0]+","+coordinates[1]+"'/37.249584,-80.429809/\">click for directions</a>";
@@ -104,7 +140,11 @@
             park.popup["Description"] = park.description;
             park.popup["Address"] = park.address;
             park.popup["Website"] = "<a target='_blank' href='"+park.url+"'>click here</a>";
-            parks.push({id: park.id, name: park.park_name, center: [37.249584, -80.429809], popup: park.popup});
+            $("#parkInfo").innerHTML = park.popup;
+            park.popup2 = {};
+            park.popup2["Name"] = park.park_name;
+            park.popup2["Information"] = '<button type="button" class="btn btn-primary showInfo" id="'+park.id+'">Show Information</button>';
+            parks.push({id: park.id, name: park.park_name, center: [37.249584, -80.429809], popup: park.popup2, info: park.popup});
           });
           parks.map(function(park) {
             var marker = L.marker(park.center).addTo(map);
@@ -113,10 +153,20 @@
               parkText += "<dt>"+key+"</dt>";
               parkText += "<dd>"+park.popup[key]+"</dd>";
             });
-            parkText += "</dl>"
+            parkText += "</dl>";
+            var parkInfo = "<div class='parkInfo' id='info"+park.id+"'><dl>";
+            Object.keys(park.info).map(function(key) {
+              parkInfo += "<dt>"+key+"</dt>";
+              parkInfo += "<dd>"+park.info[key]+"</dd>";
+            });
+            parkInfo += "</dl></div>";
             marker.bindPopup(parkText);
+            $("#parkInfo").append(parkInfo);
             map.parkCoordinates.push(marker);
           });
+          if(getUrlVars()['location']) {
+            map.fireEvent('geosearch_groups_updated');
+          }
         }
       });
       console.log(parks);
@@ -132,9 +182,11 @@
     ];
 
     $(document).ready(function() {
-      var map = L.map('mapid').setView(coordinates, 13);
+      map = L.map('mapid').setView(coordinates, 13);
       map.addControl(new customControl());
+      map.parkCoordinates = []
       $("#map").hide();
+      $("#infoPane").hide();
       var x = document.getElementById("x");
       var byLocation = document.getElementById("byLocation");
       var provider = new L.GeoSearch.Provider.OpenStreetMap();
@@ -147,21 +199,22 @@
       L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
           attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
       }).addTo(map);
-
-      map.on('geosearch_showlocation', function (result) {
-          coordinates = [result.Location.Y, result.Location.X]
-          console.log(coordinates);
-          //console.log(map.group);
-          //setTimeout(function() {map.fitBounds(map.group.getBounds());},1000);
-          //map.fitBounds(map.group.getBounds());
-          map.parkCoordinates.push(result.Marker);
-          result.Marker.bindPopup("Your location:  '"+address+"'");
-          setTimeout(function() {map.fireEvent('geosearch_groups_updated'); },500);
+      
+      map.on('geosearch_showlocation', function(result) {
+        coordinates = [result.Location.Y, result.Location.X]
+        console.log(coordinates);
+        //console.log(map.group);
+        //setTimeout(function() {map.fitBounds(map.group.getBounds());},1000);
+        //map.fitBounds(map.group.getBounds());
+        map.parkCoordinates.push(result.Marker);
+        result.Marker.bindPopup("Your location:  '"+address+"'");
+        setTimeout(function() {map.fireEvent('geosearch_groups_updated'); },500);
       });
 
       map.on('geosearch_groups_updated', function() {
         console.log("fired");
         var group = new L.featureGroup(map.parkCoordinates);
+        console.log(map.parkCoordinates);
         map.fitBounds(group.getBounds(),{padding:[50,50]});
       });
 

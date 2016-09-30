@@ -10,7 +10,6 @@
   </head>
   <body>
   <div class="container" id="search">
-    <div id="x" style="display:none;"></div>
     <div class="row">
       <div class="col-md-6">
         <form method="get" action="search.html" class="form-horizontal">
@@ -18,12 +17,14 @@
               <legend>
                 Your Location
               </legend>
-              <div style="display:none;">
-                <input type="checkbox" id="location" disabled="disabled" name="location"> Use my location
+              <div id="locationArea">
+                <input type="checkbox" id="location" name="location"> Use my location
               </div>
+              <input type="hidden" name="lat" id="lat" />
+              <input type="hidden" name="lon" id="lon" />
               <label for="address">Address</label>
                 <input type="text" class="form-control" id="address" name="address" placeholder="Your Address">
-              <input type="submit" id="updateMap" class="btn btn-primary" value="Update Map" />
+              <input type="submit" id="updateMap" class="btn btn-primary" value="Show Map" />
             </div>
             <div class="form-group">
               <legend>
@@ -36,65 +37,95 @@
       </div>
     </div>
   </div>
-  <div id='wait' style='height:100%;'>Please wait...</div>
+  <div id='wait' style='height:100%;'><h1>Please wait...</h1></div>
+  <div id='gettingLocation' style='height:100%;'><h1>Getting your location...</h1></div>
 
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
   <script src="js/bootstrap.min.js"></script>
   <script type="text/javascript">
 
     var coordinates = [37.2253366,-80.4316803 ] //latitude, longitude
-
+    var waitingAJAX = false;
+    var waitingLocation = false;
+    
     $( document ).ajaxStart(function() {
       $("#wait").show();
+      waitingAJAX = true;
       $("#search").hide();
     });
 
     $( document ).ajaxComplete(function() {
       $("#wait").hide();
-      $("#search").show();
+      waitingAJAX = false;
+      showSearch();
     });
 
     $( document ).ajaxError(function() {
       $("#wait").hide();
-      $("#search").show();
+      waitingAJAX = false;
+      showSearch();
+    });
+    
+    function showSearch() {
+      if(!waitingAJAX && !waitingLocation) {
+        $("#search").show();
+      }
+    }
+    
+    $("#location").change(function () {
+      $("#address").prop( "disabled", this.checked );
     });
 
     function getLocation() {
-        x.innerHTML = "entered getLocation()"
+        console.log("entered getLocation()");
+        waitingLocation = true;
+        $("#gettingLocation").show();
+        $("#search").hide();
         if (navigator.geolocation) {
-            x.innerHTML += 1;
+            console.log(1);
             navigator.geolocation.getCurrentPosition(showPosition, showError);
         } else {
-            x.innerHTML += 2;
-            x.innerHTML += "Geolocation is not supported by this browser.";
+            console.log(2);
+            console.log("Geolocation is not supported by this browser.");
+            waitingLocation = false;
+            showSearch();
         }
     }
 
     function showPosition(position) {
         console.log(3);
-        $("#location").show();
-        $("#location").enable();
+        waitingLocation = false;
+        $("#gettingLocation").hide();
+        showSearch();
+        $("#locationArea").show();
+        $("#location").attr('checked','checked');
+        $("#location").trigger('change');
         coordinates = [position.coords.latitude, position.coords.longitude]
-        x.innerHTML += "Latitude: " + position.coords.latitude +
-        "<br>Longitude: " + position.coords.longitude;
+        $("#lat").val(position.coords.latitude);
+        $("#lon").val(position.coords.longitude);
+        console.log("Latitude: " + position.coords.latitude +
+        "<br>Longitude: " + position.coords.longitude);
         byLocation.style.display = 'block';
     }
 
     function showError(error) {
         switch(error.code) {
             case error.PERMISSION_DENIED:
-                x.innerHTML += "User denied the request for Geolocation.";
+                console.log("User denied the request for Geolocation.");
                 break;
             case error.POSITION_UNAVAILABLE:
-                x.innerHTML += "Location information is unavailable.";
+                console.log("Location information is unavailable.");
                 break;
             case error.TIMEOUT:
-                x.innerHTML += "The request to get user location timed out.";
+                console.log("The request to get user location timed out.");
                 break;
             case error.UNKNOWN_ERROR:
-                x.innerHTML += "An unknown error occurred.";
+                console.log("An unknown error occurred.");
                 break;
         }
+        waitingLocation = false;
+        $("#gettingLocation").hide();
+        showSearch();
     }
 
     function loadAmenities() {
@@ -109,7 +140,8 @@
         [7, 'Horseshoe Pits']
       ].map(addAmenity)*/
       var amenities = [];
-      $.ajax("http://parks.api.codefornrv.org/amenity_type",{
+      //$.ajax("http://parks.api.codefornrv.org/amenity_type",{
+      $.ajax("amenity_type_placeholder",{
         dataType:"json",
         success: function(data) {
           //console.log(data);
@@ -131,7 +163,8 @@
     }
 
     $(document).ready(function() {
-      var x = document.getElementById("x");
+      $("#locationArea").hide();
+      $("#gettingLocation").hide();
       var byLocation = document.getElementById("byLocation");
       loadAmenities();
       getLocation();
