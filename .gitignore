@@ -9,3 +9,8 @@ js/npm.js
 css/l.*
 js/l.*
 img/*
+nbproject/*
+/NRV-Park-Finder/nbproject/private/
+css/jquery*
+js/jquery*
+css/images/*

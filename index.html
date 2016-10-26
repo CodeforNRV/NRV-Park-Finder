@@ -2,37 +2,51 @@
   <head>
     <link rel="stylesheet" href="css/bootstrap.min.css">
     <link rel="stylesheet" href="css/bootstrap-theme.min.css">
+    <link rel="stylesheet" href="css/jquery.mobile-1.4.5.min.css">
     <title></title>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <style></style>
+    <style>
+      .header-bg {
+        width:100%;
+        height:200px;
+        background-image: url("https://www.codefornrv.org/wp-content/uploads/2016/05/cropped-New_River_Virginia.jpg");
+        background-size:cover;
+        text-align:center;
+        color:white;
+      }
+    </style>
   </head>
   <body>
+  <div class="jumbotron header-bg">
+    <h1 style="background-color:black; opacity:0.7;">Find 5 Nearest NRV Parks Matching Criteria</h1>
+  </div>
   <div class="container" id="search">
     <div class="row">
-      <div class="col-md-6">
+      <div class="col-md-12">
         <form method="get" action="search.html" class="form-horizontal">
-            <div class="form-group">
-              <legend>
+            <!--div class="form-group"-->
+              <!--legend>
                 Your Location
-              </legend>
+              </legend-->
               <div id="locationArea">
-                <input type="checkbox" id="location" name="location"> Use my location
+                <label for="location"><input type="checkbox" id="location" name="location"> Use my location</label>
               </div>
               <input type="hidden" name="lat" id="lat" />
               <input type="hidden" name="lon" id="lon" />
-              <label for="address">Address</label>
-                <input type="text" class="form-control" id="address" name="address" placeholder="Your Address">
-              <input type="submit" id="updateMap" class="btn btn-primary" value="Show Map" />
-            </div>
-            <div class="form-group">
-              <legend>
+              <label class="address" for="address">Address</label>
+                <input type="text" class="form-control address" id="address" name="address" placeholder="Your Address">
+            <!--/div-->
+            <!--div class="form-group"-->
+              <!--legend>
                 Amenities
-              </legend>
+              </legend-->
+              <input data-theme="c" type="button" id="searchAmenities" class="btn btn-primary" value="Advanced Search by Amentity(ies)" />
               <div id="amenities">
               </div>
-            </div>
+              <input data-theme="b" type="submit" id="updateMap" class="btn btn-primary" value="Show Nearest Parks" />
+            <!--/div-->
         </form>
       </div>
     </div>
@@ -42,12 +56,13 @@
 
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
   <script src="js/bootstrap.min.js"></script>
+  <script src="js/jquery.mobile-1.4.5.min.js"></script>
   <script type="text/javascript">
 
     var coordinates = [37.2253366,-80.4316803 ] //latitude, longitude
     var waitingAJAX = false;
     var waitingLocation = false;
-    
+
     $( document ).ajaxStart(function() {
       $("#wait").show();
       waitingAJAX = true;
@@ -65,15 +80,29 @@
       waitingAJAX = false;
       showSearch();
     });
-    
+
+    $("form").submit(function(event){
+      window.location="search.html?"+$(this).serialize();
+    });
+
+    $("#searchAmenities").click(function() {
+      $("#amenities").show();
+      $(this).hide();
+    });
+
     function showSearch() {
       if(!waitingAJAX && !waitingLocation) {
         $("#search").show();
       }
     }
-    
+
     $("#location").change(function () {
       $("#address").prop( "disabled", this.checked );
+      if(this.checked) {
+        $(".address").hide();
+      } else {
+        $(".address").show();
+      }
     });
 
     function getLocation() {
@@ -100,12 +129,12 @@
         $("#locationArea").show();
         $("#location").attr('checked','checked');
         $("#location").trigger('change');
+        $("#location").checkboxradio('refresh');
         coordinates = [position.coords.latitude, position.coords.longitude]
         $("#lat").val(position.coords.latitude);
         $("#lon").val(position.coords.longitude);
         console.log("Latitude: " + position.coords.latitude +
         "<br>Longitude: " + position.coords.longitude);
-        byLocation.style.display = 'block';
     }
 
     function showError(error) {
@@ -149,17 +178,20 @@
             amenities.push([amenity.id, amenity.amenity_name]);
           });
           amenities.map(addAmenity);
+          $("#amenities").hide();
         }
       });
     }
 
     function addAmenity(amenity) {
-      id = amenity[0]
-      name = amenity[1]
-      container = $("#amenities")
-      $('<input />', { type: 'checkbox', id: 'cb'+id, name: 'cb'+id, value: 't' }).appendTo(container);
-      $('<label />', { 'for': 'cb'+id, text: name }).appendTo(container);
-      $('<br />', { 'for': 'cb'+id, text: name }).appendTo(container);
+      id = amenity[0];
+      name = amenity[1];
+      container = $("#amenities");
+      $('<label />', {'for': 'cb'+id, id: 'cbl'+id}).appendTo(container);
+      //$('<input />', { type: 'checkbox', id: 'cb'+id, name: 'cb'+id, value: 't' }).appendTo($('#cbl'+id));
+      $('#cbl'+id).html('<input type="checkbox" id="cb'+id+'" name="cb'+id+'" value="t" />'+name);
+      $('#cbl'+id).trigger('create');
+      //$('<br />', { }).appendTo(container);
     }
 
     $(document).ready(function() {
