@@ -2,25 +2,16 @@
   <head>
     <link rel="stylesheet" href="css/bootstrap.min.css">
     <link rel="stylesheet" href="css/bootstrap-theme.min.css">
+    <link rel="stylesheet" href="css/misc.css">
     <link rel="stylesheet" href="css/jquery.mobile-1.4.5.min.css">
     <title></title>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <style>
-      .header-bg {
-        width:100%;
-        height:200px;
-        background-image: url("https://www.codefornrv.org/wp-content/uploads/2016/05/cropped-New_River_Virginia.jpg");
-        background-size:cover;
-        text-align:center;
-        color:white;
-      }
-    </style>
   </head>
   <body>
   <div class="jumbotron header-bg">
-    <h1 style="background-color:black; opacity:0.7;">Find 5 Nearest NRV Parks Matching Criteria</h1>
+    <h1 style="background-color:black; opacity:0.7;">NRV Park Search</h1>
   </div>
   <div class="container" id="search">
     <div class="row">
@@ -51,12 +42,27 @@
       </div>
     </div>
   </div>
-  <div id='wait' style='height:100%;'><h1>Please wait...</h1></div>
-  <div id='gettingLocation' style='height:100%;'><h1>Getting your location...</h1></div>
+  <button id="loading" class="show-page-loading-msg" data-theme="b" data-textonly="false" data-textvisible="true" data-msgtext="Loading..." data-icon="arrow-r" data-iconpos="right">Loading...</button>
+  <a id="popupLink" href="#popup" data-rel="popup" data-position-to="window" data-transition="pop" class="ui-btn ui-corner-all ui-shadow ui-btn-inline ui-icon-delete ui-btn-icon-left ui-btn-b">Show</a>
+  <div id="popup" data-role="popup" data-overlay-theme="b" data-theme="b" data-dismissible="false" style="max-width:400px;">
+    <div data-role="header" data-theme="a">
+      <h1>Welcome!</h1>
+    </div>
+    <div role="main" class="ui-content">
+        <p>This page searches parks in and around the New River Valley in Virginia.</p>
+        <p>After clicking the "Show Nearest Parks" button, nearby parks matching your preferences are shown on a map.</p>
+        <p>On that map, you can click each park to learn more information and get directions.</p>
+      <a href="#" id="thanks" class="ui-btn ui-corner-all ui-shadow ui-btn-inline ui-btn-b" data-rel="back">Dismiss and Begin Searching</a>
+    </div>
+  </div>
+  <!--div id='wait' style='height:100%;'><h1>Please wait...</h1></div>
+  <div id='gettingLocation' style='height:100%;'><h1>Getting your location...</h1></div-->
 
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
   <script src="js/bootstrap.min.js"></script>
+  <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
   <script src="js/jquery.mobile-1.4.5.min.js"></script>
+  <script src="js/misc.js"></script>
   <script type="text/javascript">
 
     var coordinates = [37.2253366,-80.4316803 ] //latitude, longitude
@@ -64,19 +70,16 @@
     var waitingLocation = false;
 
     $( document ).ajaxStart(function() {
-      $("#wait").show();
+      $("#loading").trigger("click");
       waitingAJAX = true;
-      $("#search").hide();
     });
 
     $( document ).ajaxComplete(function() {
-      $("#wait").hide();
       waitingAJAX = false;
       showSearch();
     });
 
     $( document ).ajaxError(function() {
-      $("#wait").hide();
       waitingAJAX = false;
       showSearch();
     });
@@ -92,7 +95,10 @@
 
     function showSearch() {
       if(!waitingAJAX && !waitingLocation) {
-        $("#search").show();
+        $.mobile.loading( "hide" );
+        if(getCookie("ack")!=1) {
+            $("#popupLink").trigger("click");
+        }
       }
     }
 
@@ -108,8 +114,7 @@
     function getLocation() {
         console.log("entered getLocation()");
         waitingLocation = true;
-        $("#gettingLocation").show();
-        $("#search").hide();
+        $("#loading").trigger("click");
         if (navigator.geolocation) {
             console.log(1);
             navigator.geolocation.getCurrentPosition(showPosition, showError);
@@ -124,7 +129,6 @@
     function showPosition(position) {
         console.log(3);
         waitingLocation = false;
-        $("#gettingLocation").hide();
         showSearch();
         $("#locationArea").show();
         $("#location").attr('checked','checked');
@@ -153,7 +157,6 @@
                 break;
         }
         waitingLocation = false;
-        $("#gettingLocation").hide();
         showSearch();
     }
 
@@ -169,8 +172,8 @@
         [7, 'Horseshoe Pits']
       ].map(addAmenity)*/
       var amenities = [];
-      //$.ajax("http://parks.api.codefornrv.org/amenity_type",{
-      $.ajax("amenity_type_placeholder",{
+      $.ajax("https://parks.api.codefornrv.org/amenity_type",{
+      //$.ajax("amenity_type_placeholder",{
         dataType:"json",
         success: function(data) {
           //console.log(data);
@@ -188,11 +191,30 @@
       name = amenity[1];
       container = $("#amenities");
       $('<label />', {'for': 'cb'+id, id: 'cbl'+id}).appendTo(container);
-      //$('<input />', { type: 'checkbox', id: 'cb'+id, name: 'cb'+id, value: 't' }).appendTo($('#cbl'+id));
       $('#cbl'+id).html('<input type="checkbox" id="cb'+id+'" name="cb'+id+'" value="t" />'+name);
       $('#cbl'+id).trigger('create');
-      //$('<br />', { }).appendTo(container);
     }
+
+    $("#thanks").click(function() {
+        setCookie("ack",1,30);
+    });
+
+    // https://api.jquerymobile.com/loader/
+    $(document).on( "click", ".show-page-loading-msg", function() {
+        var $this = $( this ),
+        theme = $this.jqmData( "theme" ) || $.mobile.loader.prototype.options.theme,
+        msgText = $this.jqmData( "msgtext" ) || $.mobile.loader.prototype.options.text,
+        textVisible = $this.jqmData( "textvisible" ) || $.mobile.loader.prototype.options.textVisible,
+        textonly = !!$this.jqmData( "textonly" );
+        html = $this.jqmData( "html" ) || "";
+    $.mobile.loading( 'show', {
+        text: msgText,
+        textVisible: textVisible,
+        theme: theme,
+        textonly: textonly,
+        html: html
+        });
+    });
 
     $(document).ready(function() {
       $("#locationArea").hide();
@@ -200,6 +222,13 @@
       var byLocation = document.getElementById("byLocation");
       loadAmenities();
       getLocation();
+      $("#popupLink").hide();
+      $("#popupBusy").hide();
+      $("#loading").hide();
+      /*if(getUrlVars()['dev']==1) {
+         setCookie("ack","",-1); 
+      }*/
+      console.log(getUrlVars());
     });
   </script>
   </body>

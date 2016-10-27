@@ -22,20 +22,12 @@
 
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
   <script src="js/bootstrap.min.js"></script>
+  <script src="js/misc.js"></script>
   <script type="text/javascript">
 
     var coordinates = [37.2253366,-80.4316803 ] //latitude, longitude
     var address = "";
     var map;
-
-    function getUrlVars() {
-      // thanks http://papermashup.com/read-url-get-variables-withjavascript/
-      var vars = {};
-      var parts = window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi, function(m,key,value) {
-          vars[key] = decodeURIComponent(value.replace(/\+/g," "));
-      });
-      return vars;
-    }
     
     function mapLocation (result) {
       var marker = L.marker(coordinates).addTo(map);
