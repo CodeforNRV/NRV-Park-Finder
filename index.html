@@ -1,125 +1,76 @@
 <html>
-  <head>
-    <link rel="stylesheet" href="css/bootstrap.min.css">
-    <link rel="stylesheet" href="css/bootstrap-theme.min.css">
-    <link rel="stylesheet" href="css/misc.css">
-    <link rel="stylesheet" href="css/jquery.mobile-1.4.5.min.css">
-    <title></title>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-  </head>
-  <body>
-  <div class="jumbotron header-bg">
-    <h1 style="background-color:black; opacity:0.7;">NRV Park Search</h1>
-  </div>
-  <div class="container" id="search">
-    <div class="row">
-      <div class="col-md-12">
-        <form method="get" action="search.html" class="form-horizontal">
-            <!--div class="form-group"-->
-              <!--legend>
-                Your Location
-              </legend-->
-              <div id="locationArea">
-                <label for="location"><input type="checkbox" id="location" name="location"> Use my location</label>
-              </div>
-              <input type="hidden" name="lat" id="lat" />
-              <input type="hidden" name="lon" id="lon" />
-              <label class="address" for="address">Address</label>
-                <input type="text" class="form-control address" id="address" name="address" placeholder="Your Address">
-            <!--/div-->
-            <!--div class="form-group"-->
-              <!--legend>
-                Amenities
-              </legend-->
-              <input data-theme="c" type="button" id="searchAmenities" class="btn btn-primary" value="Advanced Search by Amentity(ies)" />
-              <div id="amenities">
-              </div>
-              <input data-theme="b" type="submit" id="updateMap" class="btn btn-primary" value="Show Nearest Parks" />
-            <!--/div-->
-        </form>
-      </div>
+    <head>
+        <link rel="stylesheet" href="css/bootstrap.min.css">
+        <link rel="stylesheet" href="css/bootstrap-theme.min.css">
+        <link rel="stylesheet" href="css/misc.css">
+        <link rel="stylesheet" href="css/jquery.mobile-1.4.5.min.css">
+        <title></title>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+    </head>
+    <body>
+    <div class="jumbotron header-bg">
+        <h1 style="background-color:black; opacity:0.7;">NRV Park Search</h1>
     </div>
-  </div>
-  <button id="loading" class="show-page-loading-msg" data-theme="b" data-textonly="false" data-textvisible="true" data-msgtext="Loading..." data-icon="arrow-r" data-iconpos="right">Loading...</button>
-  <a id="popupLink" href="#popup" data-rel="popup" data-position-to="window" data-transition="pop" class="ui-btn ui-corner-all ui-shadow ui-btn-inline ui-icon-delete ui-btn-icon-left ui-btn-b">Show</a>
-  <div id="popup" data-role="popup" data-overlay-theme="b" data-theme="b" data-dismissible="false" style="max-width:400px;">
-    <div data-role="header" data-theme="a">
-      <h1>Welcome!</h1>
+    <div class="container" id="search">
+        <div class="row">
+            <div class="col-md-12">
+                <form method="get" action="search.html" class="form-horizontal">
+                    <div id="locationArea">
+                        <label for="location"><input type="checkbox" id="location" name="location"> Use my location</label>
+                    </div>
+                    <input type="hidden" name="lat" id="lat" />
+                    <input type="hidden" name="lon" id="lon" />
+                    <label class="address" for="address">Address</label>
+                    <input type="text" class="form-control address" id="address" name="address" placeholder="Your Address">
+                    <input data-theme="c" type="button" id="searchAmenities" class="btn btn-primary" value="Advanced Search by Amentity(ies)" />
+                    <div id="amenities">
+                    </div>
+                    <input data-theme="b" type="submit" id="updateMap" class="btn btn-primary" value="Show Nearest Parks" />
+                </form>
+            </div>
+        </div>
     </div>
-    <div role="main" class="ui-content">
-        <p>This page searches parks in and around the New River Valley in Virginia.</p>
-        <p>After clicking the "Show Nearest Parks" button, nearby parks matching your preferences are shown on a map.</p>
-        <p>On that map, you can click each park to learn more information and get directions.</p>
-      <a href="#" id="thanks" class="ui-btn ui-corner-all ui-shadow ui-btn-inline ui-btn-b" data-rel="back">Dismiss and Begin Searching</a>
+    <button id="loading" class="show-page-loading-msg" data-theme="b" data-textonly="false" data-textvisible="true" data-msgtext="Loading..." data-icon="arrow-r" data-iconpos="right">Loading...</button>
+    <a id="popupLink" href="#popup" data-rel="popup" data-position-to="window" data-transition="pop" class="ui-btn ui-corner-all ui-shadow ui-btn-inline ui-icon-delete ui-btn-icon-left ui-btn-b">Show</a>
+    <div id="popup" data-role="popup" data-overlay-theme="b" data-theme="b" data-dismissible="false" style="max-width:400px;">
+        <div data-role="header" data-theme="a">
+            <h1>Welcome!</h1>
+        </div>
+        <div role="main" class="ui-content">
+            <p>This page searches parks in and around the New River Valley in Virginia.</p>
+            <p>After clicking the "Show Nearest Parks" button, nearby parks matching your preferences are shown on a map.</p>
+            <p>On that map, you can click each park to learn more information and get directions.</p>
+            <a href="#" id="thanks" class="ui-btn ui-corner-all ui-shadow ui-btn-inline ui-btn-b" data-rel="back">Dismiss and Begin Searching</a>
+        </div>
     </div>
-  </div>
-  <!--div id='wait' style='height:100%;'><h1>Please wait...</h1></div>
-  <div id='gettingLocation' style='height:100%;'><h1>Getting your location...</h1></div-->
-
-  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
-  <script src="js/bootstrap.min.js"></script>
-  <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
-  <script src="js/jquery.mobile-1.4.5.min.js"></script>
-  <script src="js/misc.js"></script>
-  <script type="text/javascript">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+    <script src="js/bootstrap.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    <script src="js/jquery.mobile-1.4.5.min.js"></script>
+    <script src="js/misc.js"></script>
+    <script type="text/javascript">
 
     var coordinates = [37.2253366,-80.4316803 ] //latitude, longitude
     var waitingAJAX = false;
     var waitingLocation = false;
 
-    $( document ).ajaxStart(function() {
-      $("#loading").trigger("click");
-      waitingAJAX = true;
-    });
-
-    $( document ).ajaxComplete(function() {
-      waitingAJAX = false;
-      showSearch();
-    });
-
-    $( document ).ajaxError(function() {
-      waitingAJAX = false;
-      showSearch();
-    });
-
-    $("form").submit(function(event){
-      window.location="search.html?"+$(this).serialize();
-    });
-
-    $("#searchAmenities").click(function() {
-      $("#amenities").show();
-      $(this).hide();
-    });
-
     function showSearch() {
-      if(!waitingAJAX && !waitingLocation) {
-        $.mobile.loading( "hide" );
-        if(getCookie("ack")!=1) {
-            $("#popupLink").trigger("click");
+        if(!waitingAJAX && !waitingLocation) {
+            $.mobile.loading( "hide" );
+            if(getCookie("ack")!=1) {
+                $("#popupLink").trigger("click");
+            }
         }
-      }
     }
-
-    $("#location").change(function () {
-      $("#address").prop( "disabled", this.checked );
-      if(this.checked) {
-        $(".address").hide();
-      } else {
-        $(".address").show();
-      }
-    });
-
+    
     function getLocation() {
-        console.log("entered getLocation()");
         waitingLocation = true;
         $("#loading").trigger("click");
         if (navigator.geolocation) {
-            console.log(1);
             navigator.geolocation.getCurrentPosition(showPosition, showError);
         } else {
-            console.log(2);
             console.log("Geolocation is not supported by this browser.");
             waitingLocation = false;
             showSearch();
@@ -127,7 +78,6 @@
     }
 
     function showPosition(position) {
-        console.log(3);
         waitingLocation = false;
         showSearch();
         $("#locationArea").show();
@@ -137,8 +87,6 @@
         coordinates = [position.coords.latitude, position.coords.longitude]
         $("#lat").val(position.coords.latitude);
         $("#lon").val(position.coords.longitude);
-        console.log("Latitude: " + position.coords.latitude +
-        "<br>Longitude: " + position.coords.longitude);
     }
 
     function showError(error) {
@@ -160,40 +108,36 @@
         showSearch();
     }
 
-    function loadAmenities() {
-      /*
-      [
-        [1, 'Playground'],
-        [2, 'Picnic'],
-        [3, 'Basketball'],
-        [4, 'Soccer Fields'],
-        [5, 'Tennis Courts'],
-        [6, 'Skate Park'],
-        [7, 'Horseshoe Pits']
-      ].map(addAmenity)*/
-      var amenities = [];
-      $.ajax("https://parks.api.codefornrv.org/amenity_type",{
-      //$.ajax("amenity_type_placeholder",{
-        dataType:"json",
-        success: function(data) {
-          //console.log(data);
-          data.map(function(amenity) {
-            amenities.push([amenity.id, amenity.amenity_name]);
-          });
-          amenities.map(addAmenity);
-          $("#amenities").hide();
-        }
-      });
-    }
+    $( document ).ajaxStart(function() {
+        $("#loading").trigger("click");
+        waitingAJAX = true;
+    });
+    $( document ).ajaxComplete(function() {
+        waitingAJAX = false;
+        showSearch();
+    });
+    $( document ).ajaxError(function() {
+        waitingAJAX = false;
+        showSearch();
+    });
 
-    function addAmenity(amenity) {
-      id = amenity[0];
-      name = amenity[1];
-      container = $("#amenities");
-      $('<label />', {'for': 'cb'+id, id: 'cbl'+id}).appendTo(container);
-      $('#cbl'+id).html('<input type="checkbox" id="cb'+id+'" name="cb'+id+'" value="t" />'+name);
-      $('#cbl'+id).trigger('create');
-    }
+    $("form").submit(function(event){
+        window.location="search.html?"+$(this).serialize();
+    });
+
+    $("#searchAmenities").click(function() {
+        $("#amenities").show();
+        $(this).hide();
+    });
+
+    $("#location").change(function () {
+        $("#address").prop( "disabled", this.checked );
+        if(this.checked) {
+            $(".address").hide();
+        } else {
+            $(".address").show();
+        }
+    });
 
     $("#thanks").click(function() {
         setCookie("ack",1,30);
@@ -217,19 +161,35 @@
     });
 
     $(document).ready(function() {
-      $("#locationArea").hide();
-      $("#gettingLocation").hide();
-      var byLocation = document.getElementById("byLocation");
-      loadAmenities();
-      getLocation();
-      $("#popupLink").hide();
-      $("#popupBusy").hide();
-      $("#loading").hide();
-      /*if(getUrlVars()['dev']==1) {
-         setCookie("ack","",-1); 
-      }*/
-      console.log(getUrlVars());
+        $("#locationArea").hide();
+        $("#gettingLocation").hide();
+        var byLocation = document.getElementById("byLocation");
+        var amenities = [];
+        $.ajax("https://parks.api.codefornrv.org/amenity_type",{
+        //$.ajax("amenity_type_placeholder",{
+            dataType:"json",
+            success: function(data) {
+                data.map(function(amenity) {
+                    amenities.push([amenity.id, amenity.amenity_name]);
+                });
+                amenities.map(function(amenity) {
+                    id = amenity[0];
+                    name = amenity[1];
+                    container = $("#amenities");
+                    $('<label />', {'for': 'cb'+id, id: 'cbl'+id}).appendTo(container);
+                    $('#cbl'+id).html('<input type="checkbox" id="cb'+id+'" name="cb'+id+'" value="t" />'+name);
+                    $('#cbl'+id).trigger('create');
+                });
+                $("#amenities").hide();
+            }
+        });
+        getLocation();
+        $("#popupLink").hide();
+        $("#loading").hide();
+        if(getUrlVars()['dev']==1) {
+            setCookie("ack","",-1); 
+        }
     });
-  </script>
-  </body>
+    </script>
+    </body>
 </html>
