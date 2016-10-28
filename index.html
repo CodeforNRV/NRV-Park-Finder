@@ -45,6 +45,16 @@
             <a href="#" id="thanks" class="ui-btn ui-corner-all ui-shadow ui-btn-inline ui-btn-b" data-rel="back">Dismiss and Begin Searching</a>
         </div>
     </div>
+    <a id="popupAlertLink" href="#popupAlert" data-rel="popup" data-position-to="window" data-transition="pop" class="ui-btn ui-corner-all ui-shadow ui-btn-inline ui-icon-delete ui-btn-icon-left ui-btn-b">Show</a>
+    <div id="popupAlert" data-role="popup" data-overlay-theme="a" data-theme="a" data-dismissible="false" style="max-width:400px;">
+        <div data-role="header" data-theme="a">
+            <h1>Alert</h1>
+        </div>
+        <div role="main" class="ui-content">
+            <h3>Please enter an address or nearby landmark</h3>
+            <a href="#" id="thanks" class="ui-btn ui-corner-all ui-shadow ui-btn-inline ui-btn-b" data-rel="back">Ok</a>
+        </div>
+    </div>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
     <script src="js/bootstrap.min.js"></script>
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
@@ -122,6 +132,11 @@
     });
 
     $("form").submit(function(event){
+        if($("#address").val()=='' && !$("#location").is(':checked')) {
+            //alert("Enter an address or nearby landmark.");
+            $("#popupAlertLink").trigger("click");
+            return false;
+        }
         window.location="search.html?"+$(this).serialize();
     });
 
@@ -185,6 +200,7 @@
         });
         getLocation();
         $("#popupLink").hide();
+        $("#popupAlertLink").hide();
         $("#loading").hide();
         if(getUrlVars()['dev']==1) {
             setCookie("ack","",-1); 
