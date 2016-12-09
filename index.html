@@ -75,16 +75,16 @@
         }
     }
     
-    function getLocation() {
+    function getLocation() {        
         waitingLocation = true;
         $("#loading").trigger("click");
         if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(showPosition, showError);
+            navigator.geolocation.getCurrentPosition(showPosition, showError, {maximumAge: 10000, timeout:10000});
         } else {
             console.log("Geolocation is not supported by this browser.");
-            waitingLocation = false;
-            showSearch();
         }
+        waitingLocation = false;
+        showSearch();
     }
 
     function showPosition(position) {
@@ -100,6 +100,8 @@
     }
 
     function showError(error) {
+        waitingLocation = false;
+        showSearch();
         switch(error.code) {
             case error.PERMISSION_DENIED:
                 console.log("User denied the request for Geolocation.");
@@ -114,8 +116,6 @@
                 console.log("An unknown error occurred.");
                 break;
         }
-        waitingLocation = false;
-        showSearch();
     }
 
     $( document ).ajaxStart(function() {

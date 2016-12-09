@@ -7,6 +7,7 @@
     <script src="https://npmcdn.com/leaflet@1.0.0-rc.2/dist/leaflet.js"></script>
     <script src="js/l.control.geosearch.js"></script>
     <script src="js/l.geosearch.provider.openstreetmap.js"></script>
+    <script src="js/l.geosearch.provider.esri.js"></script>
     <title></title>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -14,20 +15,32 @@
     <style></style>
   </head>
   <body>
+  <button id="loading" class="show-page-loading-msg" data-theme="b" data-textonly="false" data-textvisible="true" data-msgtext="Loading..." data-icon="arrow-r" data-iconpos="right">Loading...</button>
   <div id='map'>
-    <div id='mapid' style='height: 100%;'></div>
+    <div id='mapid' style='height: 100%; z-index: -1;'></div>
   </div>
-  <div id='wait' style='height:100%;'>Please wait...</div>
   <div id='infoPane' style='height:100%;'><div id="parkInfo"></div><button type="buttom" id="showMap" class="btn btn-primary">Back to Map</button></div>
 
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
   <script src="js/bootstrap.min.js"></script>
   <script src="js/misc.js"></script>
+  <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+  <script src="js/jquery.mobile-1.4.5.min.js"></script>
   <script type="text/javascript">
 
     var coordinates = [37.2253366,-80.4316803 ] //latitude, longitude
     var address = "";
     var map;
+    var searchingAddress = false;
+    var searchingParks = false;
+    
+    function finished(map) {
+        if(!searchingAddress && !searchingParks) {
+            //$.mobile.loading( "hide" );
+            //$("#map").show();
+            //map.invalidateSize();
+        }
+    }
     
     function mapLocation (result) {
       var marker = L.marker(coordinates).addTo(map);
@@ -46,20 +59,20 @@
       $("#map").show();
     }
 
-    $( document ).ajaxStart(function() {
+    /*$( document ).ajaxStart(function() {
       $("#map").hide();
       $("#wait").show();
     });
 
     $( document ).ajaxComplete(function() {
       $("#wait").hide();
-      $("#map").show();
+      //$("#map").show();
     });
 
     $( document ).ajaxError(function() {
       $("#wait").hide();
       $("#map").hide();
-    });
+    });*/
 
     $("#showMap").click(hideInfo);
     $(document).on('click',".showInfo",function(e) {
@@ -69,8 +82,9 @@
     });
     
     function updateMap(map, search) {
-
-      $("#map").show();
+      console.log("updating map...");
+      $("#loading").trigger("click");
+      $("#map").hide();
       map.invalidateSize();
       $("#search").hide();
       var getVars = getUrlVars();
@@ -84,38 +98,21 @@
         }
       }
 
-      /*if(address == "") {
-        window.location="index.html";
-      }*/
-
       if(getVars['location']) {
         coordinates=[getVars['lat'],getVars['lon']];
-        /*address = coordinates;
-        var result = {};
-        result["Location"] = {};
-        result["Location"]["Y"] = getVars['lat'];
-        result["Location"]["X"] = getVars['lon'];*/
         var marker = L.marker(coordinates);
         marker.addTo(map).bindPopup("Your Location").openPopup();
         map.parkCoordinates.push(marker);
-        //map.fireEvent('geosearch_showlocation');
       } else {
+        searchAddress = true;
         search.geosearch(address);
-      }      
-      /*getParks([],coordinates).map(function(park) {
-        var marker = L.marker(park.center).addTo(map);
-        map.parkCoordinates.push(marker);
-      });*/
+      }
       getParks(map, [],coordinates);
-
-      //var group = new L.featureGroup(parkCoordinates);
-      //map.fitBounds(group.getBounds());
-      //setTimeout(function(){ map.fitBounds(group.getBounds()); }, 3000);
-      //map.group = group;
     }
 
     function getParks(map, amenities, coordinates) {
       var parks = []
+      searchParks = true;
       //$.ajax("http://parks.api.codefornrv.org/parks",{
       $.ajax("parks_placeholder",{
         dataType:"json",
@@ -173,7 +170,25 @@
       {id: 1, name: 'Dog Park', center: [37.253124,-80.4356664]}
     ];
 
+    $(document).on( "click", ".show-page-loading-msg", function() {
+        var $this = $( this ),
+        theme = $this.jqmData( "theme" ) || $.mobile.loader.prototype.options.theme,
+        msgText = $this.jqmData( "msgtext" ) || $.mobile.loader.prototype.options.text,
+        textVisible = $this.jqmData( "textvisible" ) || $.mobile.loader.prototype.options.textVisible,
+        textonly = !!$this.jqmData( "textonly" );
+        html = $this.jqmData( "html" ) || "";
+        console.log("loading detected");
+    $.mobile.loading( 'show', {
+        text: msgText,
+        textVisible: textVisible,
+        theme: theme,
+        textonly: textonly,
+        html: html
+        });
+    });
+
     $(document).ready(function() {
+      $("#loading").hide();
       map = L.map('mapid').setView(coordinates, 13);
       map.addControl(new customControl());
       map.parkCoordinates = []
@@ -181,6 +196,7 @@
       $("#infoPane").hide();
       var x = document.getElementById("x");
       var byLocation = document.getElementById("byLocation");
+      var tries = 0;
       var provider = new L.GeoSearch.Provider.OpenStreetMap();
       var search = new L.Control.GeoSearch({
           provider: provider,
@@ -193,21 +209,36 @@
       }).addTo(map);
       
       map.on('geosearch_showlocation', function(result) {
+        searchAddress = false;
         coordinates = [result.Location.Y, result.Location.X]
         console.log(coordinates);
-        //console.log(map.group);
-        //setTimeout(function() {map.fitBounds(map.group.getBounds());},1000);
-        //map.fitBounds(map.group.getBounds());
         map.parkCoordinates.push(result.Marker);
         result.Marker.bindPopup("Your location:  '"+address+"'");
         setTimeout(function() {map.fireEvent('geosearch_groups_updated'); },500);
+        finished(map);
       });
 
       map.on('geosearch_groups_updated', function() {
+        searchParks = false;
         console.log("fired");
         var group = new L.featureGroup(map.parkCoordinates);
         console.log(map.parkCoordinates);
         map.fitBounds(group.getBounds(),{padding:[50,50]});
+        finished(map);
+      });
+      
+      map.on('geosearch_error',function() {
+          searchAddress = false;
+          ++tries;
+          console.log("failed searches:  "+tries);
+          if(tries == 1){
+              provider = new L.GeoSearch.Provider.Esri();
+              updateMap(map, search)
+          } else {
+              alert("Could not find that address with any providers");
+              window.location = "index.html";
+          }
+          finished(map);
       });
 
       updateMap(map, search)
@@ -217,7 +248,6 @@
 
       options: {
         position: 'topleft'
-        //control position - allowed: 'topleft', 'topright', 'bottomleft', 'bottomright'
       },
 
       onAdd: function (map) {
