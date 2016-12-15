@@ -15,9 +15,9 @@
     <style></style>
   </head>
   <body>
-  <button id="loading" class="show-page-loading-msg" data-theme="b" data-textonly="false" data-textvisible="true" data-msgtext="Loading..." data-icon="arrow-r" data-iconpos="right">Loading...</button>
+  <!--button id="loading" class="show-page-loading-msg" data-theme="b" data-textonly="false" data-textvisible="true" data-msgtext="Loading..." data-icon="arrow-r" data-iconpos="right">Loading...</button-->
   <div id='map'>
-    <div id='mapid' style='height: 100%; z-index: -1;'></div>
+    <div id='mapid' style='height: 100%;'></div>
   </div>
   <div id='infoPane' style='height:100%;'><div id="parkInfo"></div><button type="buttom" id="showMap" class="btn btn-primary">Back to Map</button></div>
 
@@ -25,7 +25,7 @@
   <script src="js/bootstrap.min.js"></script>
   <script src="js/misc.js"></script>
   <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
-  <script src="js/jquery.mobile-1.4.5.min.js"></script>
+  <!--script src="js/jquery.mobile-1.4.5.min.js"></script-->
   <script type="text/javascript">
 
     var coordinates = [37.2253366,-80.4316803 ] //latitude, longitude
@@ -36,7 +36,9 @@
     
     function finished(map) {
         if(!searchingAddress && !searchingParks) {
+            console.log("finished");
             //$.mobile.loading( "hide" );
+            //$("#loading").hide();
             //$("#map").show();
             //map.invalidateSize();
         }
@@ -83,8 +85,9 @@
     
     function updateMap(map, search) {
       console.log("updating map...");
-      $("#loading").trigger("click");
-      $("#map").hide();
+      //$("#loading").trigger("click");
+      //$("#map").hide();
+      $("#map").show();
       map.invalidateSize();
       $("#search").hide();
       var getVars = getUrlVars();
@@ -114,7 +117,7 @@
       var parks = []
       searchParks = true;
       //$.ajax("http://parks.api.codefornrv.org/parks",{
-      $.ajax("parks_placeholder",{
+      $.ajax("parks_placeholder.json",{
         dataType:"json",
         success: function(data) {
           data.map(function(park) {
@@ -170,7 +173,7 @@
       {id: 1, name: 'Dog Park', center: [37.253124,-80.4356664]}
     ];
 
-    $(document).on( "click", ".show-page-loading-msg", function() {
+    /*$(document).on( "click", ".show-page-loading-msg", function() {
         var $this = $( this ),
         theme = $this.jqmData( "theme" ) || $.mobile.loader.prototype.options.theme,
         msgText = $this.jqmData( "msgtext" ) || $.mobile.loader.prototype.options.text,
@@ -185,10 +188,11 @@
         textonly: textonly,
         html: html
         });
-    });
+    });*/
 
     $(document).ready(function() {
-      $("#loading").hide();
+      //$("#loading").hide();
+      //$.mobile.loading( "show" );
       map = L.map('mapid').setView(coordinates, 13);
       map.addControl(new customControl());
       map.parkCoordinates = []
