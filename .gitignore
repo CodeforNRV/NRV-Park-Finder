@@ -1,0 +1,5 @@
+css/bootstrap/images/*
+img/*
+js/leaflet/images/*
+*.pyc
+nbproject/*
