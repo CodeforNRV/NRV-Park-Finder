@@ -10,26 +10,50 @@
     <script src="js/l.geosearch.provider.openstreetmap.js"></script>
     <script src="js/l.geosearch.provider.esri.js"></script>
     <title></title>
+    <link rel="stylesheet" href="//code.jquery.com/mobile/1.4.5/jquery.mobile-1.4.5.min.css">
+    <!--script src="//code.jquery.com/jquery-1.10.2.min.js"></script-->
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <style></style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <style>
+      .ui-content.mapfix {
+        position: absolute;
+        top: 40px;
+        right: 0;
+        bottom: 40px;
+        left: 0;
+        padding: 0 !important;
+      }
+    </style>
   </head>
   <body>
-  <!--button id="loading" class="show-page-loading-msg" data-theme="b" data-textonly="false" data-textvisible="true" data-msgtext="Loading..." data-icon="arrow-r" data-iconpos="right">Loading...</button-->
-  <div id='map'>
-    <div id='mapid' style='height: 100%;'></div>
+  <div data-role="page" id="page1">
+    <div data-role="header">
+      <h1>Nearest Parks</h1>
+      <h3>Click to see the park on a map.</h3>
+    </div>
+    <div role="main" class="ui-content">
+      <ul id='parkList' data-role="listview"></ul>
+    </div>
   </div>
-  <div id='infoPane' class="container-fluid" style='height:100%;'>
-    <div id="parkInfo"></div>
-    <button type="buttom" id="showMap" class="btn btn-primary">Back to Map</button>
+  
+  <div data-role="page" id="page2">
+    <div data-role="content" id="map" class="mapfix">
+      <div id='mapid' style='height:100%'></div>
+    </div>
   </div>
-
+  
+  <div data-role="page" id="page3">
+    <div role="main" class="ui-content">
+      <div id='infoPane' style=''><div id="parkInfo"></div><button type="buttom" id="showMap" class="btn btn-primary">Back to Map</button></div>
+    </div>
+  </div>
+  
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
   <script src="js/bootstrap.min.js"></script>
   <script src="js/misc.js"></script>
   <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
-  <!--script src="js/jquery.mobile-1.4.5.min.js"></script-->
+  <script src="//code.jquery.com/mobile/1.4.5/jquery.mobile-1.4.5.min.js"></script>
   <script type="text/javascript">
 
     var coordinates = [37.2253366,-80.4316803 ] //latitude, longitude
@@ -41,10 +65,6 @@
     function finished(map) {
         if(!searchingAddress && !searchingParks) {
             console.log("finished");
-            //$.mobile.loading( "hide" );
-            //$("#loading").hide();
-            //$("#map").show();
-            //map.invalidateSize();
         }
     }
     
@@ -53,32 +73,16 @@
     }
     
     function showInfo() {
+      $.mobile.changePage("#page3",{transition:"slide"});
       console.log("showing information");
       $("#infoPane").show();
       $(".parkInfo").hide();
-      $("#map").hide();
     }
     
     function hideInfo() {
       console.log("showing information");
-      $("#infoPane").hide();
-      $("#map").show();
+      window.history.back();
     }
-
-    /*$( document ).ajaxStart(function() {
-      $("#map").hide();
-      $("#wait").show();
-    });
-
-    $( document ).ajaxComplete(function() {
-      $("#wait").hide();
-      //$("#map").show();
-    });
-
-    $( document ).ajaxError(function() {
-      $("#wait").hide();
-      $("#map").hide();
-    });*/
 
     $("#showMap").click(hideInfo);
     $(document).on('click',".showInfo",function(e) {
@@ -89,8 +93,6 @@
     
     function updateMap(map, search) {
       console.log("updating map...");
-      //$("#loading").trigger("click");
-      //$("#map").hide();
       $("#map").show();
       map.invalidateSize();
       $("#search").hide();
@@ -158,6 +160,7 @@
             parkInfo += "</dl></div>";
             marker.bindPopup(parkText);
             $("#parkInfo").append(parkInfo);
+            $("#parkList").append('<li><a href="#page2" data-transition="slide" rel="'+park.id+'">'+park.name+'</a></li>').listview('refresh');
             map.parkCoordinates.push(marker);
           });
           if(getUrlVars()['location']) {
@@ -177,31 +180,22 @@
       {id: 1, name: 'Dog Park', center: [37.253124,-80.4356664]}
     ];
 
-    /*$(document).on( "click", ".show-page-loading-msg", function() {
-        var $this = $( this ),
-        theme = $this.jqmData( "theme" ) || $.mobile.loader.prototype.options.theme,
-        msgText = $this.jqmData( "msgtext" ) || $.mobile.loader.prototype.options.text,
-        textVisible = $this.jqmData( "textvisible" ) || $.mobile.loader.prototype.options.textVisible,
-        textonly = !!$this.jqmData( "textonly" );
-        html = $this.jqmData( "html" ) || "";
-        console.log("loading detected");
-    $.mobile.loading( 'show', {
-        text: msgText,
-        textVisible: textVisible,
-        theme: theme,
-        textonly: textonly,
-        html: html
-        });
-    });*/
+    $(document).on("pageshow","#page2",function(event){
+        console.log("pageshow fired on map");
+        window.setTimeout(function(){
+            map.invalidateSize();
+            map.setView(coordinates, 13);
+            map.trigger('geosearch_showlocation');
+        },500);
+    });
 
     $(document).ready(function() {
-      //$("#loading").hide();
-      //$.mobile.loading( "show" );
+      $( "#parkList" ).listview({
+        create: function( event, ui ) {}
+      });
       map = L.map('mapid').setView(coordinates, 13);
       map.addControl(new customControl());
-      map.parkCoordinates = []
-      $("#map").hide();
-      $("#infoPane").hide();
+      map.parkCoordinates = [];
       var x = document.getElementById("x");
       var byLocation = document.getElementById("byLocation");
       var tries = 0;
