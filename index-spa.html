@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<!--
+To change this license header, choose License Headers in Project Properties.
+To change this template file, choose Tools | Templates
+and open the template in the editor.
+-->
+<html>
+    <head>
+        <link rel="stylesheet" href="css/bootstrap.min.css">
+        <link rel="stylesheet" href="css/bootstrap-theme.min.css">
+        <link rel="stylesheet" href="css/misc.css">
+        <link rel="stylesheet" href="css/jquery.mobile-1.4.5.min.css">
+        <link rel="stylesheet" href="//code.jquery.com/mobile/1.4.5/jquery.mobile-1.4.5.min.css">
+        <link rel="stylesheet" href="js/leaflet/leaflet.css" />
+        <link rel="stylesheet" href="css/bootstrap.min.css">
+        <link rel="stylesheet" href="css/bootstrap-theme.min.css">
+        <link rel="stylesheet" href="css/l.geosearch.css" />
+        <link rel="stylesheet" href="css/park-info.css" />
+        <style>
+            .mapfix {
+                position: absolute;
+                top: 40px;
+                right: 0;
+                bottom: 40px;
+                left: 0;
+                padding: 0 !important;
+            }
+        </style>
+        <title>NRV Park Search</title>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    </head>
+    <body>
+        <div data-role="page" id="page1">
+            <div class="jumbotron header-bg">
+                <h1 style="background-color:black; opacity:0.7;">NRV Park Search</h1>
+            </div>
+            <div class="container" id="search">
+                <div class="row">
+                    <div class="col-md-12">
+                        <form method="get" class="form-horizontal">
+                            <div id="locationArea">
+                                <label for="location"><input type="checkbox" id="location" name="location"> Use my location</label>
+                            </div>
+                            <input type="hidden" name="lat" id="lat" />
+                            <input type="hidden" name="lon" id="lon" />
+                            <label class="address" for="address">Address</label>
+                            <input type="text" class="form-control address" id="address" name="address" placeholder="Your Address">
+                            <input data-theme="c" type="button" id="searchAmenities" class="btn btn-primary" value="Advanced Search by Amentity(ies)" />
+                            <div id="amenities">
+                            </div>
+                            <input data-theme="b" type="submit" id="updateMap" class="btn btn-primary" value="Show Nearest Parks" />
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <button id="loading" class="show-page-loading-msg" data-theme="b" data-textonly="false" data-textvisible="true" data-msgtext="Loading..." data-icon="arrow-r" data-iconpos="right">Loading...</button>
+            <a id="popupLink" href="#popup" data-rel="popup" data-position-to="window" data-transition="pop" class="ui-btn ui-corner-all ui-shadow ui-btn-inline ui-icon-delete ui-btn-icon-left ui-btn-b">Show</a>
+            <div id="popup" data-role="popup" data-overlay-theme="b" data-theme="b" data-dismissible="false" style="max-width:400px;">
+                <div data-role="header" data-theme="a">
+                    <h1>Welcome!</h1>
+                </div>
+                <div role="main" class="ui-content">
+                    <p>This page searches parks in and around the New River Valley in Virginia.</p>
+                    <p>After clicking the "Show Nearest Parks" button, nearby parks matching your preferences are shown on a map.</p>
+                    <p>On that map, you can click each park to learn more information and get directions.</p>
+                    <a href="#" id="thanks" class="ui-btn ui-corner-all ui-shadow ui-btn-inline ui-btn-b" data-rel="back">Dismiss and Begin Searching</a>
+                </div>
+            </div>
+            <a id="popupAlertLink" href="#popupAlert" data-rel="popup" data-position-to="window" data-transition="pop" class="ui-btn ui-corner-all ui-shadow ui-btn-inline ui-icon-delete ui-btn-icon-left ui-btn-b">Show</a>
+            <div id="popupAlert" data-role="popup" data-overlay-theme="a" data-theme="a" data-dismissible="false" style="max-width:400px;">
+                <div data-role="header" data-theme="a">
+                    <h1>Alert</h1>
+                </div>
+                <div role="main" class="ui-content">
+                    <h3>Please enter an address or nearby landmark</h3>
+                    <a href="#" id="thanks" class="ui-btn ui-corner-all ui-shadow ui-btn-inline ui-btn-b" data-rel="back">Ok</a>
+                </div>
+            </div>
+        </div>
+        <div data-role="page" id="page2">
+            <div data-role="header">
+                <h1>Nearest Parks</h1>
+                <h3>Click to see the park on a map.</h3>
+            </div>
+            <div role="main" class="ui-content">
+                <ul id='parkList' data-role="listview"></ul>
+            </div>
+        </div>
+        <div data-role="page" id="page3">
+            <!--div data-role="main" class="ui-content mapfix" id="map"-->
+            <!--div data-role="content" id="map" class="mapfix"-->
+                <!--div id='mapid' style='height:95%; width:95%; display:block;'></div>
+            </div-->
+            <div data-role="content" id="map" class="mapfix">
+                <div id='mapid' style='height:100%'></div>
+            </div>
+        </div>
+        <div data-role="page" id="page4"></div>
+        <script src="https://npmcdn.com/leaflet@1.0.0-rc.2/dist/leaflet.js"></script>
+        <script src="js/l.control.geosearch.js"></script>
+        <script src="js/l.geosearch.provider.openstreetmap.js"></script>
+        <script src="js/l.geosearch.provider.esri.js"></script>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+        <script src="js/bootstrap.min.js"></script>
+        <script src="js/jquery.mobile-1.4.5.min.js"></script>
+        <script src="js/misc.js"></script>
+        <script type="text/javascript">
+            var mapData = {
+                currentLocation: null,
+                selectedPark: null,
+                searchPhrase: '',
+                tries: 0,
+                search: null,
+                parks: [],
+                group: []
+            }
+            var map = null;
+            
+            var page1 = {
+                showSearch: function(){
+                    $.mobile.loading( "hide" );
+                    if(getCookie("ack")!=1) {
+                        $("#popupLink").trigger("click");
+                    }
+                },
+                getLocation: function(){
+                    $("#loading").trigger("click");
+                    if (navigator.geolocation) {
+                        navigator.geolocation.getCurrentPosition(this.showPosition, this.showError, {maximumAge: 10000, timeout:10000});
+                    } else {
+                        console.log("Geolocation is not supported by this browser.");
+                    }
+                    this.showSearch();
+                },
+                showPosition: function(position) {
+                    waitingLocation = false;
+                    $("#locationArea").show();
+                    $("#location").attr('checked','checked');
+                    $("#location").trigger('change');
+                    $("#location").checkboxradio('refresh');
+                    mapData.currentLocation = [position.coords.latitude, position.coords.longitude]
+                    $("#lat").val(position.coords.latitude);
+                    $("#lon").val(position.coords.longitude);
+                },
+                showError: function(error) {
+                    waitingLocation = false;
+                    switch(error.code) {
+                        case error.PERMISSION_DENIED:
+                            console.log("User denied the request for Geolocation.");
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            console.log("Location information is unavailable.");
+                            break;
+                        case error.TIMEOUT:
+                            console.log("The request to get user location timed out.");
+                            break;
+                        case error.UNKNOWN_ERROR:
+                            console.log("An unknown error occurred.");
+                            break;
+                    }
+                }
+            }
+            
+            $( document ).ajaxStart(function() {
+                $("#loading").trigger("click");
+                waitingAJAX = true;
+            });
+            $( document ).ajaxComplete(function() {
+                waitingAJAX = false;
+                page1.showSearch();
+            });
+            $( document ).ajaxError(function() {
+                waitingAJAX = false;
+                page1.showSearch();
+            });
+            
+            $("form").submit(function(event){
+                if($("#address").val()=='' && !$("#location").is(':checked')) {
+                    $("#popupAlertLink").trigger("click");
+                }
+                else {
+                    mapData.phrase = $("#address").val();
+                    window.location="#page2?"+$(this).serialize();
+                }                
+                return false;
+            });
+
+            $("#searchAmenities").click(function() {
+                $("#amenities").show();
+                $(this).hide();
+            });
+
+            $("#location").change(function () {
+                $("#address").prop( "disabled", this.checked );
+                if(this.checked) {
+                    page1.getLocation();
+                    $(".address").hide();
+                } else {
+                    mapData.currentLocation = null;
+                    $(".address").show();
+                }
+            });
+
+            $("#thanks").click(function() {
+                setCookie("ack",1,30);
+            });
+            
+            // https://api.jquerymobile.com/loader/
+            $(document).on( "click", ".show-page-loading-msg", function() {
+                var $this = $( this ),
+                theme = $this.jqmData( "theme" ) || $.mobile.loader.prototype.options.theme,
+                msgText = $this.jqmData( "msgtext" ) || $.mobile.loader.prototype.options.text,
+                textVisible = $this.jqmData( "textvisible" ) || $.mobile.loader.prototype.options.textVisible,
+                textonly = !!$this.jqmData( "textonly" );
+                html = $this.jqmData( "html" ) || "";
+            $.mobile.loading( 'show', {
+                text: msgText,
+                textVisible: textVisible,
+                theme: theme,
+                textonly: textonly,
+                html: html
+                });
+            });
+            
+            $('#page1').on('pagecreate', function() {
+                console.log("pagecreate fired");
+                mapData.phrase = "";
+                $("#address").val("");
+                console.log(mapData);
+                $("#locationArea").hide();
+                $("#gettingLocation").hide();
+                var byLocation = document.getElementById("byLocation");
+                var amenities = [];
+                $.ajax("https://parks.api.codefornrv.org/amenity_type",{
+                //$.ajax("amenity_type_placeholder",{
+                    dataType:"json",
+                    success: function(data) {
+                        data.map(function(amenity) {
+                            amenities.push([amenity.id, amenity.amenity_name]);
+                        });
+                        amenities.map(function(amenity) {
+                            id = amenity[0];
+                            name = amenity[1];
+                            container = $("#amenities");
+                            $('<label />', {'for': 'cb'+id, id: 'cbl'+id}).appendTo(container);
+                            $('#cbl'+id).html('<input type="checkbox" id="cb'+id+'" name="cb'+id+'" value="t" />'+name);
+                            $('#cbl'+id).trigger('create');
+                        });
+                        $("#amenities").hide();
+                    }
+                });
+                page1.getLocation();
+                $("#popupLink").hide();
+                $("#popupAlertLink").hide();
+                $("#loading").hide();
+                if(getUrlVars()['dev']==1) {
+                    setCookie("ack","",-1); 
+                }
+                if(getCookie("ack")!=1) {
+                    $("#popupLink").trigger("click");
+                }
+            });
+            
+            $('#page2').on('pagecreate', function() {
+                console.log("pagecreate fired");
+                createMap();
+                mapData.parks = [];
+                console.log(mapData);
+                $( "#parkList" ).listview({
+                    create: function( event, ui ) {}
+                });
+                $( "#parkList" ).empty();
+                mapData.tries = 0;
+                var provider = new L.GeoSearch.Provider.OpenStreetMap();
+                mapData.search = new L.Control.GeoSearch({
+                    provider: provider,
+                    showPopup: true
+                });
+                mapData.search.addTo(map);
+                if(mapData.phrase) {
+                    console.log("phrase detected");
+                    mapData.search.geosearch(mapData.phrase);
+                } else {
+                    getParks();
+                }
+            });
+            
+            $('#page3').on('pagecreate', function() {
+                console.log("pagecreate fired");
+                createMap();
+                //map.invalidateSize();
+                //map._onResize();
+                window.setTimeout(function(){
+                    map.invalidateSize();
+                    map.setView(mapData.currentLocation, 13);
+                    var currentMarker = L.marker(mapData.currentLocation);
+                    currentMarker.addTo(map);
+                    currentMarker.bindPopup("Current location");
+                    mapData.group.push(currentMarker);
+                    console.log(mapData.group);
+                    var group = new L.featureGroup(mapData.group);
+                    map.fitBounds(group.getBounds(),{padding:[50,50]});
+                },500);
+            });
+            
+            $(document).on("click",".show-map",function(event){
+                var index = $(this).attr('rel');
+                console.log(index);
+                //todo show correct marker here
+                var point = mapData.parks[index].point_location;
+                if(point == null) {
+                    //37.249584, -80.429809
+                    /*point = {
+                        lat: -80.429809,
+                        lon: 37.249584
+                    }*/
+                    point = [37.249584, -80.429809];
+                }                    
+                var marker = L.marker(point);
+                marker.addTo(map);
+                marker.bindPopup(mapData.parks[index].park_name);
+                mapData.group = [];
+                mapData.group.push(marker);
+                window.location = "#page3?id="+mapData.parks[index].id;
+            });
+            
+            $(document).ready(function(){
+                console.log("document ready fired");
+                createMap();
+            });
+            
+            function getParks(){
+                $.ajax("https://parks.api.codefornrv.org/parks",{
+                //$.ajax("parks_placeholder.json",{
+                    dataType:"json",
+                    success: function(data) {
+                        console.log(data);
+                        mapData.parks = data;
+                        ctr = 0;
+                        data.map(function(park){
+                            $("#parkList").append('<li><a href="#" class="show-map" data-transition="slide" rel="'+ctr+'">'+park.park_name+'</a></li>').listview('refresh');
+                            ++ctr;
+                        });
+                    }
+                });
+            }
+            
+            function createMap(){
+                if(map != null) {
+                    return;
+                }
+                map = L.map('mapid').setView([37.2253366,-80.4316803 ], 13);
+                L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
+                    attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+                }).addTo(map);
+                map.addControl(new customControl());
+                map.on('geosearch_showlocation', function(result) {
+                    mapData.currentLocation = [result.Location.Y, result.Location.X]
+                    console.log(mapData.currentLocation);
+                    getParks();
+                    result.Marker.bindPopup("Your location:  '"+mapData.phrase+"'");
+                });
+
+                map.on('geosearch_groups_updated', function() {
+                    //nothing
+                });
+
+                map.on('geosearch_error',function() {
+                    ++mapData.tries;
+                    console.log("failed searches:  "+mapData.tries);
+                    if(mapData.tries == 1){
+                        provider = new L.GeoSearch.Provider.Esri();
+                        mapData.search.geosearch(mapData.phrase);
+                    } else {
+                        alert("Could not find that address with any providers");
+                        window.location = "index-spa.html";
+                    }
+                });
+            }
+            
+            var customControl = L.Control.extend({
+
+                options: {
+                    position: 'topleft'
+                },
+
+                onAdd: function (map) {
+                    var container = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom');
+                    container.innerHTML = '<button type="button" class="btn btn-primary">Back to Search</button>';
+
+                    container.style.backgroundColor = 'white';
+                    container.style.width = '100px';
+                    container.style.height = '30px';
+
+                    container.onclick = function(){
+                        console.log('buttonClicked');
+                        window.location = 'index-spa.html';
+                    }
+                    return container;
+                },
+
+              });
+        </script>
+    </body>
+</html>

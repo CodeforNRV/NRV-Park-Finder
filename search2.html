@@ -61,15 +61,12 @@
     var map;
     var searchingAddress = false;
     var searchingParks = false;
+    var markerMap = {};
     
     function finished(map) {
         if(!searchingAddress && !searchingParks) {
             console.log("finished");
         }
-    }
-    
-    function mapLocation (result) {
-      var marker = L.marker(coordinates).addTo(map);
     }
     
     function showInfo() {
@@ -122,16 +119,18 @@
     function getParks(map, amenities, coordinates) {
       var parks = []
       searchParks = true;
-      //$.ajax("http://parks.api.codefornrv.org/parks",{
-      $.ajax("parks_placeholder.json",{
+      $.ajax("https://parks.api.codefornrv.org/parks",{
+      //$.ajax("parks_placeholder.json",{
         dataType:"json",
         success: function(data) {
+          console.log(data);
           data.map(function(park) {
+            console.log("park found");
             park.popup = {};
             park.popup["Directions"] = "<a target='_blank' href=\"https://www.google.com/maps/dir/'"+coordinates[0]+","+coordinates[1]+"'/37.249584,-80.429809/\">click for directions</a>";
             park.popup["Name"] = park.park_name;
             var names = [];
-            park.alternate_names.names.map(function(name) {
+            park.alternate_names && park.alternate_names.names.map(function(name) {
               names.push(name.name);
             });
             park.popup["Alternative Names"] = names.toString();
@@ -147,6 +146,7 @@
           parks.map(function(park) {
             var marker = L.marker(park.center).addTo(map);
             var parkText = "<dl>";
+            markerMap[park.id] = park;
             Object.keys(park.popup).map(function(key) {
               parkText += "<dt>"+key+"</dt>";
               parkText += "<dd>"+park.popup[key]+"</dd>";
@@ -160,15 +160,16 @@
             parkInfo += "</dl></div>";
             marker.bindPopup(parkText);
             $("#parkInfo").append(parkInfo);
-            $("#parkList").append('<li><a href="#page2" data-transition="slide" rel="'+park.id+'">'+park.name+'</a></li>').listview('refresh');
+            $("#parkList").append('<li><a href="#page2" class="show-map" data-transition="slide" rel="'+park.id+'">'+park.name+'</a></li>').listview('refresh');
             map.parkCoordinates.push(marker);
           });
           if(getUrlVars()['location']) {
             map.fireEvent('geosearch_groups_updated');
           }
+          console.log("list of parks:  ");
+          console.log(parks);
         }
       });
-      console.log(parks);
       return parks;
     }
 
@@ -182,11 +183,19 @@
 
     $(document).on("pageshow","#page2",function(event){
         console.log("pageshow fired on map");
+        console.log(event);
         window.setTimeout(function(){
             map.invalidateSize();
             map.setView(coordinates, 13);
             map.trigger('geosearch_showlocation');
         },500);
+    });
+    
+    $(document).on("click",".show-map",function(event){
+        console.log($(this).attr('rel'));
+        //todo show correct marker here
+        var marker = L.marker(markerMap[park.id].center).addTo(map);
+        marker.bindPopup(markerMap[park.id]['Name']);
     });
 
     $(document).ready(function() {

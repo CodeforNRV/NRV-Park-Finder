@@ -16,7 +16,7 @@
     <div class="container" id="search">
         <div class="row">
             <div class="col-md-12">
-                <form method="get" action="search.html" class="form-horizontal">
+                <form method="get" action="search2.html" class="form-horizontal">
                     <div id="locationArea">
                         <label for="location"><input type="checkbox" id="location" name="location"> Use my location</label>
                     </div>
@@ -133,11 +133,10 @@
 
     $("form").submit(function(event){
         if($("#address").val()=='' && !$("#location").is(':checked')) {
-            //alert("Enter an address or nearby landmark.");
             $("#popupAlertLink").trigger("click");
             return false;
         }
-        window.location="search.html?"+$(this).serialize();
+        window.location="search2.html?"+$(this).serialize();
     });
 
     $("#searchAmenities").click(function() {
