@@ -1,0 +1,76 @@
+<html>
+    <head>
+        <link rel="stylesheet" href="js/leaflet/leaflet.css" />
+        <link rel="stylesheet" href="css/l.geosearch.css" />
+        <link rel="stylesheet" href="css/misc.css" />
+        <style>
+            body {
+                padding: 0;
+                margin: 0;
+            }
+            html, body {
+                height: 100%;
+                width: 100%;
+            }
+        </style>
+        <title>NRV Park Search</title>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    </head>
+    <body>
+        <div data-role="page" id="page3">
+            <div data-role="content" id="map" class="mapfix">
+                <div id='mapid'></div>
+            </div>
+        </div>
+        <script src="https://npmcdn.com/leaflet@1.0.0-rc.2/dist/leaflet.js"></script>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+        <script src="js/misc.js"></script>
+        <script type="text/javascript">
+            var map;
+            
+            function createMap(){
+                map = L.map('mapid').setView([getUrlVars()["lat"], getUrlVars()["lon"] ], 13);
+                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                }).addTo(map);
+            }
+            
+            function getParkById(parkId){
+                var parks = {};
+                var i;
+                //$.ajax("https://parks.api.codefornrv.org/parks",{
+                $.ajax("https://parks.api.codefornrv.org/parks_with_geojson",{
+                //$.ajax("parks_placeholder.json",{
+                    dataType:"json",
+                    success: function(data) {
+                        for(i=0; i<data.length; ++i)
+                        {
+                            if(data[i].id == parkId) {
+                                var currentMarker = L.marker([getUrlVars()["lat"], getUrlVars()["lon"]]).addTo(map);
+                                currentMarker.bindPopup("Current location").openPopup();
+                                var targetMarker = L.marker([data[i].point_location.coordinates[1], data[i].point_location.coordinates[0]]).addTo(map);
+                                targetMarker.bindPopup(
+                                    data[i].park_name + "<br /><a href='park.html?id="+parkId+"'>More Information</a>"
+                                ).openPopup();
+                                $('#mapid').height($('body').height()*.95+'px');
+                                map.invalidateSize();
+                                var group = new L.featureGroup([currentMarker, targetMarker]);
+                                map.fitBounds(group.getBounds(),{padding:[50,50]});
+                                return data[i];
+                            }
+                        }
+                        alert("Invalid link - redirecting to search page");
+                        window.location = "index.html";
+                    }
+                });
+            }
+            
+            $(document).ready(function() {
+                createMap();
+                getParkById(getUrlVars()["id"]);
+            });
+        </script>
+    </body>
+</html>

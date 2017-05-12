@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<!--
+To change this license header, choose License Headers in Project Properties.
+To change this template file, choose Tools | Templates
+and open the template in the editor.
+-->
+<html>
+    <head>
+        <link rel="stylesheet" href="css/bootstrap.min.css">
+        <link rel="stylesheet" href="css/bootstrap-theme.min.css">
+        <link rel="stylesheet" href="css/misc.css">
+        <link rel="stylesheet" href="css/jquery.mobile-1.4.5.min.css">
+        <link rel="stylesheet" href="//code.jquery.com/mobile/1.4.5/jquery.mobile-1.4.5.min.css">
+        <link rel="stylesheet" href="js/leaflet/leaflet.css" />
+        <link rel="stylesheet" href="css/l.geosearch.css" />
+        <link rel="stylesheet" href="css/park-info.css" />
+        <title>NRV Park Search</title>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    </head>
+    <body>
+        <div data-role="page" id="page2">
+            <div data-role="header">
+                <h1>Nearest Parks</h1>
+                <h3>Click to see the park on a map.</h3>
+            </div>
+            <div role="main" class="ui-content">
+                <ul id='parkList' data-role="listview"></ul>
+            </div>
+            <div data-role="content" id="map" class="mapfix">
+                <div id='mapid' style='display:none;'></div>
+            </div>
+        </div>
+        <script src="https://npmcdn.com/leaflet@1.0.0-rc.2/dist/leaflet.js"></script>
+        <script src="js/l.control.geosearch.js"></script>
+        <script src="js/l.geosearch.provider.openstreetmap.js"></script>
+        <script src="js/l.geosearch.provider.esri.js"></script>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+        <script src="js/bootstrap.min.js"></script>
+        <script src="js/jquery.mobile-1.4.5.min.js"></script>
+        <script src="js/misc.js"></script>
+        <script type="text/javascript">
+            
+            $( document ).ajaxStart(function() {
+                $("#loading").trigger("click");
+            });
+            $( document ).ajaxComplete(function() {
+                $.mobile.loading( "hide" );
+            });
+            $( document ).ajaxError(function() {
+                $.mobile.loading( "hide" );
+            });
+            
+            // https://api.jquerymobile.com/loader/
+            $(document).on( "click", ".show-page-loading-msg", function() {
+                var $this = $( this ),
+                theme = $this.jqmData( "theme" ) || $.mobile.loader.prototype.options.theme,
+                msgText = $this.jqmData( "msgtext" ) || $.mobile.loader.prototype.options.text,
+                textVisible = $this.jqmData( "textvisible" ) || $.mobile.loader.prototype.options.textVisible,
+                textonly = !!$this.jqmData( "textonly" );
+                html = $this.jqmData( "html" ) || "";
+            $.mobile.loading( 'show', {
+                text: msgText,
+                textVisible: textVisible,
+                theme: theme,
+                textonly: textonly,
+                html: html
+                });
+            });
+            
+            $('#page2').on('pagecreate', function() {
+                $( "#parkList" ).listview({ }).empty();
+                initializeSearch(createMap());
+            });
+            
+            // http://stackoverflow.com/questions/27928/calculate-distance-between-two-latitude-longitude-points-haversine-formula
+            function getDistanceFromLatLonInKm(lat1,lon1,lat2,lon2) {
+                var R = 6371; // Radius of the earth in km
+                var dLat = deg2rad(lat2-lat1);  // deg2rad below
+                var dLon = deg2rad(lon2-lon1); 
+                var a = 
+                    Math.sin(dLat/2) * Math.sin(dLat/2) +
+                    Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * 
+                    Math.sin(dLon/2) * Math.sin(dLon/2)
+                    ; 
+                var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+                var d = R * c; // Distance in km
+                return d;
+            }
+            
+            function deg2rad(deg) {
+                return deg * (Math.PI/180)
+            }
+
+            function registerClickEvent(currentLocation)
+            {
+                $(document).on("click",".show-map",function(event){
+                    window.location = "map.html?id="+$(this).attr('rel')+"&lat="+currentLocation[1]+"&lon="+currentLocation[0];
+                });
+            }
+
+            function initializeSearch(map)
+            {
+                var provider = new L.GeoSearch.Provider.OpenStreetMap();
+                var searcher = new L.Control.GeoSearch({
+                    provider: provider,
+                    showPopup: true
+                });
+                searcher.addTo(map);
+                var phrase = getUrlVars()["address"];
+                if(phrase) {
+                    search(searcher, phrase, map);
+                } else {
+                    var currentLocation = [getUrlVars()["lon"], getUrlVars()["lat"]];
+                    registerClickEvent(currentLocation);
+                    getParks(currentLocation);
+                }
+            }
+
+            function search(searcher, phrase, map) {
+                searcher.geosearch(phrase);
+                var tries = 0;
+                map.on('geosearch_error',function() {
+                    ++tries;
+                    console.log("failed searches:  "+tries);
+                    if(tries == 1){
+                        provider = new L.GeoSearch.Provider.Esri();
+                        searcher.geosearch(phrase);
+                    } else {
+                        alert("Could not find that address with any providers");
+                        window.location = "index.html";
+                    }
+                });
+            }
+
+            function getParks(currentLocation){
+                var parks = {};
+                //$.ajax("https://parks.api.codefornrv.org/parks",{
+                $.ajax("https://parks.api.codefornrv.org/parks_with_geojson",{
+                //$.ajax("parks_placeholder.json",{
+                    dataType:"json",
+                    success: function(data) {
+                        data.map(function(park){
+                            park.distance = (park.point_location ? getDistanceFromLatLonInKm(currentLocation[1],currentLocation[0],park.point_location.coordinates[1],park.point_location.coordinates[0]) : "N/A");
+                            parks[park.id] = park;
+                        });
+                        data = data.sort(function(a,b) {
+                            if(a.distance < b.distance) {
+                                return -1;
+                            }
+                            return 1;
+                        });
+                        data.map(function(park){
+                            console.log(park);
+                            //$("#parkList").append('<li><a href="#" class="show-map" data-transition="slide" rel="'+park.id+'">'+park.park_name+'</a></li>').listview('refresh');
+                            $("#parkList").append('<li><a href="#" class="show-map" data-transition="slide" rel="'+park.id+'">'+park.park_name+' ('+ park.distance +')</a></li>').listview('refresh');
+                        });
+                    }
+                });
+            }
+
+            function createMap(){
+                var map = L.map('mapid');
+                map.addControl(new customControl());
+                map.on('geosearch_showlocation', function(result) {
+                    var currentLocation = [result.Location.X, result.Location.Y];
+                    registerClickEvent(currentLocation);
+                    getParks(currentLocation);
+                });
+                return map;
+            }
+
+            var customControl = L.Control.extend({
+
+                options: {
+                    position: 'topleft'
+                },
+
+                onAdd: function (map) {
+                    var container = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom');
+                    container.innerHTML = '<button type="button" class="btn btn-primary">Back to Search</button>';
+
+                    container.style.backgroundColor = 'white';
+                    container.style.width = '100px';
+                    container.style.height = '30px';
+
+                    container.onclick = function(){
+                        console.log('buttonClicked');
+                        window.location = 'index-spa.html';
+                    }
+                    return container;
+                },
+
+              });
+        </script>
+    </body>
+</html>

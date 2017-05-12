@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<!--
+To change this license header, choose License Headers in Project Properties.
+To change this template file, choose Tools | Templates
+and open the template in the editor.
+-->
+<html>
+    <head>
+        <link rel="stylesheet" href="css/bootstrap.min.css">
+        <link rel="stylesheet" href="css/bootstrap-theme.min.css">
+        <link rel="stylesheet" href="css/misc.css">
+        <link rel="stylesheet" href="css/jquery.mobile-1.4.5.min.css">
+        <title>NRV Park Search</title>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    </head>
+    <body>
+        <div data-role="page" id="page1" style="">
+            <div class="jumbotron header-bg">
+                <h1 style="color:white; background-color:black; opacity:0.7;">NRV Park Search</h1>
+            </div>
+            <div class="container" id="search">
+                <div class="row">
+                    <div class="col-md-6 col-md-offset-3">
+                        <p>This page searches parks in and around the New River Valley in Virginia.</p>
+                        <p>After clicking the "Show Nearest Parks" button, nearby parks matching your preferences are shown on a map.</p>
+                        <p>On that map, you can click each park to learn more information and get directions.</p>
+                        <a href="index.html" id="thanks" class="ui-btn ui-corner-all ui-shadow ui-btn-inline ui-btn-b" >Dismiss and Begin Searching</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- jquery:  1.12.4 -->
+        <script src="js/jquery.min.js"></script>
+        <script src="js/bootstrap.min.js"></script>
+        <script src="js/misc.js"></script>
+        <script type="text/javascript">            
+            $("#thanks").click(function() {
+                setCookie("ack",1,30);
+                window.location = "index.html";
+            });
+        </script>
+    </body>
+</html>
