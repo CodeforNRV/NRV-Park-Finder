@@ -47,59 +47,17 @@ and open the template in the editor.
         <script src="js/jquery.mobile-1.4.5.min.js"></script>
         <script src="js/misc.js"></script>
         <script type="text/javascript">            
-            var page1 = {
-                remaining: 2,
-                ready: function() {
-                    --page1.remaining;
-                    if(!page1.remaining) {
-                        $.mobile.loading( "hide" );
-                        $("#page1").show();
-                    }
-                },
-                getLocation: function(){
-                    if (navigator.geolocation) {
-                        navigator.geolocation.getCurrentPosition(this.showPosition, this.showError, {maximumAge: 10000, timeout:10000});
-                    } else {
-                        console.log("Geolocation is not supported by this browser.");
-                    }
-                },
-                showPosition: function(position) {
-                    $("#locationArea").show();
-                    $("#location").attr('checked','checked');
-                    $("#location").trigger('change');
-                    $("#location").checkboxradio('refresh');
-                    $("#lat").val(position.coords.latitude);
-                    $("#lon").val(position.coords.longitude);
-                    page1.ready();
-                },
-                showError: function(error) {
-                    switch(error.code) {
-                        case error.PERMISSION_DENIED:
-                            console.log("User denied the request for Geolocation.");
-                            break;
-                        case error.POSITION_UNAVAILABLE:
-                            console.log("Location information is unavailable.");
-                            break;
-                        case error.TIMEOUT:
-                            console.log("The request to get user location timed out.");
-                            break;
-                        case error.UNKNOWN_ERROR:
-                            console.log("An unknown error occurred.");
-                            break;
-                    }
-                    page1.ready();
-                },
-                
-            }
             
             $( document ).ajaxStart(function() {
                 // do nothing
             });
             $( document ).ajaxComplete(function() {
-                page1.ready();
+                $.mobile.loading( "hide" );
+                $("#page1").show();
             });
             $( document ).ajaxError(function() {
-                page1.ready();
+                $.mobile.loading( "hide" );
+                $("#page1").show();
             });
             
             $("form").submit(function(event){
@@ -120,9 +78,10 @@ and open the template in the editor.
             $("#location").change(function () {
                 $("#address").prop( "disabled", this.checked );
                 if(this.checked) {
-                    page1.getLocation();
+                    //page1.getLocation();
                     $(".address").hide();
                 } else {
+                    $("#locationArea").hide();
                     $(".address").show();
                 }
             });
@@ -156,7 +115,18 @@ and open the template in the editor.
                         $("#amenities").hide();
                     }
                 });
-                page1.getLocation();
+                
+                var latitude = getUrlVars()["lat"];
+                var longitude = getUrlVars()["lon"];
+                if(getUrlVars()["location"] == "on" && latitude != "" && longitude != "")
+                {                   
+                    $("#locationArea").show();
+                    $("#location").attr('checked','checked');
+                    $("#location").trigger('change');
+                    $("#location").checkboxradio('refresh');
+                    $("#lat").val(latitude);
+                    $("#lon").val(longitude);
+                }           
             });
         </script>
     </body>

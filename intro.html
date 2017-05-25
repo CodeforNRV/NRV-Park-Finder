@@ -23,10 +23,16 @@ and open the template in the editor.
             <div class="container" id="search">
                 <div class="row">
                     <div class="col-md-6 col-md-offset-3">
-                        <p>This page searches parks in and around the New River Valley in Virginia.</p>
-                        <p>After clicking the "Show Nearest Parks" button, nearby parks matching your preferences are shown on a map.</p>
-                        <p>On that map, you can click each park to learn more information and get directions.</p>
-                        <a href="index.html" id="thanks" class="ui-btn ui-corner-all ui-shadow ui-btn-inline ui-btn-b" >Dismiss and Begin Searching</a>
+                        <p>Based on your location and amenity preferences, this site will return the nearest parks in and around the New River Valley in Virginia.</p>
+                        <p>You can share your location by clicking the checkbox below, or you can type in a nearby address on the next screen.</p>
+                        <form method="get" action="index.html" class="form-horizontal" data-ajax="false">
+                            <div id="locationArea">
+                                <label for="location"><input type="checkbox" id="location" name="location"> Use my location</label>
+                            </div>
+                            <input type="hidden" name="lat" id="lat" />
+                            <input type="hidden" name="lon" id="lon" />
+                            <input class="ui-btn ui-corner-all ui-shadow ui-btn-inline ui-btn-b" id="thanks" type="submit" value="Dismiss and Begin Searching" />
+                        </form>
                     </div>
                 </div>
             </div>
@@ -34,11 +40,54 @@ and open the template in the editor.
         <!-- jquery:  1.12.4 -->
         <script src="js/jquery.min.js"></script>
         <script src="js/bootstrap.min.js"></script>
+        <script src="js/jquery.mobile-1.4.5.min.js"></script>
         <script src="js/misc.js"></script>
-        <script type="text/javascript">            
+        <script type="text/javascript">  
+            function showError(error) {
+                switch(error.code) {
+                    case error.PERMISSION_DENIED:
+                        alert("User denied the request for Geolocation.");
+                        break;
+                    case error.POSITION_UNAVAILABLE:
+                        alert("Location information is unavailable.");
+                        break;
+                    case error.TIMEOUT:
+                        alert("The request to get user location timed out.");
+                        break;
+                    case error.UNKNOWN_ERROR:
+                        alert("An unknown error occurred.");
+                        break;
+                }
+                uncheck();
+            }
+            
+            function showPosition(position) {
+                $("#lat").val(position.coords.latitude);
+                $("#lon").val(position.coords.longitude);
+            }
+            
+            function uncheck() {
+                $("#location").prop('checked', false);
+                $("#location").removeAttr('checked').checkboxradio("refresh");
+            }
+            
             $("#thanks").click(function() {
                 setCookie("ack",1,30);
-                window.location = "index.html";
+            });
+            
+            $("#location").click(function() {
+                if (!$(this).prop("checked"))
+                {
+                    $("#lat").val("");
+                    $("#lon").val("");
+                    return;
+                }
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(showPosition, showError, {maximumAge: 10000, timeout:10000});
+                } else {
+                    alert("Geolocation is not supported by this browser.");
+                    uncheck();
+                }
             });
         </script>
     </body>
