@@ -1,0 +1,71 @@
+<html>
+    <head>
+        <link rel="stylesheet" href="css/bootstrap.min.css">
+        <link rel="stylesheet" href="css/bootstrap-theme.min.css">
+        <link rel="stylesheet" href="css/misc.css">
+        <link rel="stylesheet" href="css/park-info.css" />
+        <title>NRV Park Search</title>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    </head>
+    <body style="display:none;">
+        <div class="jumbotron header-bg">
+            <h1 style="color:white; background-color:black; opacity:0.7;">NRV Park Search</h1>
+        </div>
+        <div id='infoPane' class="container" style='height:100%;'>
+            <div class="row">
+                <div class="col-sm-3"></div>
+                <div class="col-sm-6"><div id="parkInfo"></div></div>
+                <div class="col-sm-3"></div>
+            </div>
+        </div>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+        <script src="js/bootstrap.min.js"></script>
+        <script src="js/misc.js"></script>
+        <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+        <script type="text/javascript">
+            function showInfo(park) {
+                var parkInfo = "<div class='parkInfo' id='info"+park.id+"'><dl>";
+                var url;
+                Object.keys(park).map(function(key) {
+                    if(park[key] == null || park[key] == '' || ['point_location', 'geojson', 'osm_info'].indexOf(key) >= 0) {
+                        return;
+                    }
+                    parkInfo += "<dt>"+key.toUpperCase().replace(new RegExp('_', 'g'), ' ')+"</dt>";
+                    parkInfo += "<dd>"+park[key]+"</dd>";
+                    if(key == 'url') {
+                        url = park[key];
+                    }
+                });
+                
+                parkInfo += "</dl></div>";
+                $("#parkInfo").append(parkInfo);
+                $("body").show();
+            }
+            
+            function getParkById(parkId){
+                //$.ajax("https://parks.api.codefornrv.org/parks",{
+                $.ajax("https://parks.api.codefornrv.org/parks_with_geojson",{
+                    dataType:"json",
+                    success: function(data){
+                        var i;
+                        for(i=0; i<data.length; ++i)
+                        {
+                            if(data[i].id == parkId) {
+                                showInfo(data[i]);
+                                return;
+                            }
+                        }
+                        alert("Invalid link - redirecting to search page");
+                        window.location = "index.html";
+                    }
+                });
+            }
+            
+            $(document).ready(function(){
+                getParkById(getUrlVars()["id"]);
+            });
+        </script>
+    </body>
+</html>
