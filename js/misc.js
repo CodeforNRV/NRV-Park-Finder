@@ -28,3 +28,16 @@ function getCookie(cname) {
     }
     return "";
 }
+
+var geoLocation = {
+    getLocation: function() {
+        var deferred = $.Deferred();
+        if(navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(deferred.resolve, deferred.reject, { timeout: 5000 });
+            setTimeout(function() { deferred.reject(new Error('Could not get your location.')) }, 7000);
+        } else {
+            deferred.reject(new Error('Your browser does not support Geo Location.'));
+        }
+        return deferred.promise();
+    } 
+};

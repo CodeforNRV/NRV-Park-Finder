@@ -24,6 +24,7 @@ and open the template in the editor.
             <div data-role="header">
                 <h1>Nearest Parks</h1>
                 <h3>Click to see the park on a map.</h3>
+                <input type="button" value="Update Location" onclick="updateLocation()" style="float:left;" />
             </div>
             <div role="main" class="ui-content">
                 <ul id='parkList' data-role="listview"></ul>
@@ -69,10 +70,43 @@ and open the template in the editor.
                 });
             });
             
+            function detectRefresh() {
+                return performance.navigation.type == 1 && getUrlVars()["location"] == "on";
+            }
+            
+            function updateLocation() {
+                navigator.geolocation.getCurrentPosition(showPosition, showError, {maximumAge: 5000, timeout:5000});
+            }
+            
+            function showPosition(position) {
+                window.location = "parks.html?lat=" + position.coords.latitude + "&lon=" + position.coords.longitude + "&location=on";
+            }
+            
+            function showError(error) {
+                switch(error.code) {
+                    case error.PERMISSION_DENIED:
+                        alert("User denied the request for Geolocation.");
+                        break;
+                    case error.POSITION_UNAVAILABLE:
+                        alert("Location information is unavailable.");
+                        break;
+                    case error.TIMEOUT:
+                        alert("The request to get user location timed out.");
+                        break;
+                    case error.UNKNOWN_ERROR:
+                        alert("An unknown error occurred.");
+                        break;
+                }
+                uncheck();
+            }
+            
             $('#page2').on('pagecreate', function() {
-                /*if (performance.navigation.type == 1 && getUrlVars()["location"] == "on") {
-                    window.location = "refresh.html";
-                }*/
+                if(detectRefresh()) {
+                    var result = confirm("Update your location?");
+                    if(result) {
+                        updateLocation();
+                    }
+                }
                 $( "#parkList" ).listview({ }).empty();
                 initializeSearch(createMap());
             });
