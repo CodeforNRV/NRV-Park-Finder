@@ -70,13 +70,16 @@ and open the template in the editor.
             });
             
             $('#page2').on('pagecreate', function() {
+                /*if (performance.navigation.type == 1 && getUrlVars()["location"] == "on") {
+                    window.location = "refresh.html";
+                }*/
                 $( "#parkList" ).listview({ }).empty();
                 initializeSearch(createMap());
             });
             
             // http://stackoverflow.com/questions/27928/calculate-distance-between-two-latitude-longitude-points-haversine-formula
-            function getDistanceFromLatLonInKm(lat1,lon1,lat2,lon2) {
-                var R = 6371; // Radius of the earth in km
+            function getDistanceFromLatLonInMiles(lat1,lon1,lat2,lon2) {
+                var R = 3959; // Radius of the earth in mi
                 var dLat = deg2rad(lat2-lat1);  // deg2rad below
                 var dLon = deg2rad(lon2-lon1); 
                 var a = 
@@ -136,13 +139,22 @@ and open the template in the editor.
 
             function getParks(currentLocation){
                 var parks = {};
-                //$.ajax("https://parks.api.codefornrv.org/parks",{
+                //$.ajax("https://parks.api.codefornrv.org/amenities",{
                 $.ajax("https://parks.api.codefornrv.org/parks_with_geojson",{
                 //$.ajax("parks_placeholder.json",{
                     dataType:"json",
                     success: function(data) {
+                        var amenities = [];
+                        for(v in getUrlVars())
+                        {
+                            if(v.substring(0,2) === "cb") {
+                                amenities.push(parseInt(v.substring(2, v.length)));
+                            }
+                        }
+                        console.log(amenities);
+                        
                         data.map(function(park){
-                            park.distance = (park.point_location ? getDistanceFromLatLonInKm(currentLocation[1],currentLocation[0],park.point_location.coordinates[1],park.point_location.coordinates[0]) : "N/A");
+                            park.distance = (park.point_location ? getDistanceFromLatLonInMiles(currentLocation[1],currentLocation[0],park.point_location.coordinates[1],park.point_location.coordinates[0]) : "N/A");
                             parks[park.id] = park;
                         });
                         data = data.sort(function(a,b) {
@@ -154,7 +166,7 @@ and open the template in the editor.
                         data.map(function(park){
                             console.log(park);
                             //$("#parkList").append('<li><a href="#" class="show-map" data-transition="slide" rel="'+park.id+'">'+park.park_name+'</a></li>').listview('refresh');
-                            $("#parkList").append('<li><a href="#" class="show-map" data-transition="slide" rel="'+park.id+'">'+park.park_name+' ('+ park.distance +')</a></li>').listview('refresh');
+                            $("#parkList").append('<li><a href="#" class="show-map" data-transition="slide" rel="'+park.id+'">'+park.park_name+' ('+ park.distance.toFixed(1) +' mi)</a></li>').listview('refresh');
                         });
                     }
                 });
