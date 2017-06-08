@@ -31,7 +31,8 @@ and open the template in the editor.
                             </div>
                             <input type="hidden" name="lat" id="lat" />
                             <input type="hidden" name="lon" id="lon" />
-                            <input class="ui-btn ui-corner-all ui-shadow ui-btn-inline ui-btn-b" id="thanks" type="submit" value="Dismiss and Begin Searching" />
+                            <p id="busy" style="display:none;">Getting your location...please wait</p>
+                            <div id="thanksContainer"><input class="ui-btn ui-corner-all ui-shadow ui-btn-inline ui-btn-b" id="thanks" type="submit" value="Dismiss and Begin Searching" /></div>
                         </form>
                     </div>
                 </div>
@@ -43,6 +44,54 @@ and open the template in the editor.
         <script src="js/jquery.mobile-1.4.5.min.js"></script>
         <script src="js/misc.js"></script>
         <script type="text/javascript">  
+            
+            $("#thanks").click(function() {
+                setCookie("ack",1,30);
+            });
+            
+            $('#page1').on('pagecreate', function() {
+                uncheck();
+            });
+            
+            $("#location").click(function() {
+                if (!$(this).prop("checked"))
+                {
+                    $("#lat").val("");
+                    $("#lon").val("");
+                    return;
+                }
+                
+                busy(true);
+                geoLocation.getLocation().then(function(position) {
+                    showPosition(position);
+                }).fail(function(err) {
+                    showError(err);
+                });
+            });
+            
+            function uncheck() {
+                $("#location").prop('checked', false);
+                $("#location").removeAttr('checked').checkboxradio("refresh");
+            }
+            
+            function busy(isBusy) {
+                if(isBusy) {
+                    $.mobile.loading( "show" );
+                    $("#thanksContainer").hide();
+                    $("#busy").show();
+                } else {
+                    $.mobile.loading( "hide" );
+                    $("#thanksContainer").show();
+                    $("#busy").hide();
+                }
+            }
+            
+            function showPosition(position) {
+                $("#lat").val(position.coords.latitude);
+                $("#lon").val(position.coords.longitude);
+                busy(false);
+            }
+            
             function showError(error) {
                 switch(error.code) {
                     case error.PERMISSION_DENIED:
@@ -59,36 +108,8 @@ and open the template in the editor.
                         break;
                 }
                 uncheck();
+                busy(false);
             }
-            
-            function showPosition(position) {
-                $("#lat").val(position.coords.latitude);
-                $("#lon").val(position.coords.longitude);
-            }
-            
-            function uncheck() {
-                $("#location").prop('checked', false);
-                $("#location").removeAttr('checked').checkboxradio("refresh");
-            }
-            
-            $("#thanks").click(function() {
-                setCookie("ack",1,30);
-            });
-            
-            $("#location").click(function() {
-                if (!$(this).prop("checked"))
-                {
-                    $("#lat").val("");
-                    $("#lon").val("");
-                    return;
-                }
-                if (navigator.geolocation) {
-                    navigator.geolocation.getCurrentPosition(showPosition, showError, {maximumAge: 10000, timeout:10000});
-                } else {
-                    alert("Geolocation is not supported by this browser.");
-                    uncheck();
-                }
-            });
         </script>
     </body>
 </html>
