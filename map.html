@@ -32,7 +32,7 @@
             
             function createMap(){
                 map = L.map('mapid').setView([getUrlVars()["lat"], getUrlVars()["lon"] ], 13);
-                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                 L.tileLayer('https://api.mapbox.com/styles/v1/nealf/cj4a7oll139od2spe6ckgufjq/tiles/256/{z}/{x}/{y}?access_token=pk.eyJ1IjoibmVhbGYiLCJhIjoiNmM4MGQ3M2UzNmVlMTY0OWNmZDhiZjk0YWZlYzQ4OTYifQ.VEiV66Tl7sjD5n-bDLjbhw', {
                     attribution: '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                 }).addTo(map);
             }
