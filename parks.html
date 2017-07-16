@@ -43,202 +43,137 @@ and open the template in the editor.
         <script src="js/misc.js"></script>
         <script type="text/javascript">
             
-            $( document ).ajaxStart(function() {
-                $("#loading").trigger("click");
-            });
-            $( document ).ajaxComplete(function() {
-                $.mobile.loading( "hide" );
-            });
-            $( document ).ajaxError(function() {
-                $.mobile.loading( "hide" );
-            });
-            
-            // https://api.jquerymobile.com/loader/
-            $(document).on( "click", ".show-page-loading-msg", function() {
-                var $this = $( this ),
-                theme = $this.jqmData( "theme" ) || $.mobile.loader.prototype.options.theme,
-                msgText = $this.jqmData( "msgtext" ) || $.mobile.loader.prototype.options.text,
-                textVisible = $this.jqmData( "textvisible" ) || $.mobile.loader.prototype.options.textVisible,
-                textonly = !!$this.jqmData( "textonly" );
-                html = $this.jqmData( "html" ) || "";
-            $.mobile.loading( 'show', {
-                text: msgText,
-                textVisible: textVisible,
-                theme: theme,
-                textonly: textonly,
-                html: html
-                });
-            });
-            
             function detectRefresh() {
                 return performance.navigation.type == 1 && getUrlVars()["location"] == "on";
             }
             
-            function updateLocation() {
-                navigator.geolocation.getCurrentPosition(showPosition, showError, {maximumAge: 5000, timeout:5000});
-            }
-            
-            function showPosition(position) {
-                window.location = "parks.html?lat=" + position.coords.latitude + "&lon=" + position.coords.longitude + "&location=on";
-            }
-            
-            function showError(error) {
-                switch(error.code) {
-                    case error.PERMISSION_DENIED:
-                        alert("User denied the request for Geolocation.");
-                        break;
-                    case error.POSITION_UNAVAILABLE:
-                        alert("Location information is unavailable.");
-                        break;
-                    case error.TIMEOUT:
-                        alert("The request to get user location timed out.");
-                        break;
-                    case error.UNKNOWN_ERROR:
-                        alert("An unknown error occurred.");
-                        break;
-                }
-                uncheck();
+            function updateLocation(map) {
+                $( "#parkList" ).listview({ }).empty();
+                geoLocation.getLocation().then(function(position) {
+                    refreshResults(map, position.coords.longitude, position.coords.latitude);
+                }).fail(function(err) {
+                    showError(err);
+                });
             }
             
             $('#page2').on('pagecreate', function() {
-                if(detectRefresh()) {
-                    var result = confirm("Update your location?");
-                    if(result) {
-                        updateLocation();
+                var map = createMap();
+                if(getUrlVars()["location"] == "on") {
+                    if(detectRefresh())
+                    {
+                        updateLocation(map);
                     }
+                    else
+                    {
+                        refreshResults(map, getUrlVars()["lon"], getUrlVars()["lat"]);
+                    }                    
                 }
-                $( "#parkList" ).listview({ }).empty();
-                initializeSearch(createMap());
+                else
+                {
+                    var provider = new L.GeoSearch.Provider.OpenStreetMap();
+                    var phrase = getUrlVars()["address"];
+                    var retries = 0;
+                    var searcher = new L.Control.GeoSearch({
+                        provider: provider,
+                        showPopup: true
+                    });
+                    searcher.addTo(map);
+                    map.on('geosearch_error',function() {
+                        if(retries == 0) {
+                            retries++;
+                            provider = new L.GeoSearch.Provider.Esri();
+                            searcher.geosearch(phrase);
+                        } else {
+                            alert("Could not find that address with any providers");
+                            window.location = "index.html";
+                        }
+                    });
+                    searcher.geosearch(phrase);
+                }
             });
-            
-            // http://stackoverflow.com/questions/27928/calculate-distance-between-two-latitude-longitude-points-haversine-formula
-            function getDistanceFromLatLonInMiles(lat1,lon1,lat2,lon2) {
-                var R = 3959; // Radius of the earth in mi
-                var dLat = deg2rad(lat2-lat1);  // deg2rad below
-                var dLon = deg2rad(lon2-lon1); 
-                var a = 
-                    Math.sin(dLat/2) * Math.sin(dLat/2) +
-                    Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * 
-                    Math.sin(dLon/2) * Math.sin(dLon/2)
-                    ; 
-                var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
-                var d = R * c; // Distance in km
-                return d;
-            }
-            
-            function deg2rad(deg) {
-                return deg * (Math.PI/180)
-            }
 
             function registerClickEvent(currentLocation)
             {
                 $(document).on("click",".show-map",function(event){
-                    window.location = "map.html?id="+$(this).attr('rel')+"&lat="+currentLocation[1]+"&lon="+currentLocation[0];
+                    window.location = "map.html?id="+$(this).attr('rel')+"&location="+getUrlVars()["location"]+"&lat="+currentLocation[1]+"&lon="+currentLocation[0];
                 });
             }
-
-            function initializeSearch(map)
+            
+            function refreshResults(map, lon, lat)
             {
-                var provider = new L.GeoSearch.Provider.OpenStreetMap();
-                var searcher = new L.Control.GeoSearch({
-                    provider: provider,
-                    showPopup: true
-                });
-                searcher.addTo(map);
-                var phrase = getUrlVars()["address"];
-                if(phrase) {
-                    search(searcher, phrase, map);
-                } else {
-                    var currentLocation = [getUrlVars()["lon"], getUrlVars()["lat"]];
-                    registerClickEvent(currentLocation);
-                    getParks(currentLocation);
-                }
-            }
-
-            function search(searcher, phrase, map) {
-                searcher.geosearch(phrase);
-                var tries = 0;
-                map.on('geosearch_error',function() {
-                    ++tries;
-                    console.log("failed searches:  "+tries);
-                    if(tries == 1){
-                        provider = new L.GeoSearch.Provider.Esri();
-                        searcher.geosearch(phrase);
-                    } else {
-                        alert("Could not find that address with any providers");
-                        window.location = "index.html";
-                    }
-                });
-            }
-
-            function getParks(currentLocation){
-                var parks = {};
-                //$.ajax("https://parks.api.codefornrv.org/amenities",{
-                $.ajax("https://parks.api.codefornrv.org/parks_with_geojson",{
-                //$.ajax("parks_placeholder.json",{
-                    dataType:"json",
-                    success: function(data) {
-                        var amenities = [];
-                        for(v in getUrlVars())
-                        {
-                            if(v.substring(0,2) === "cb") {
-                                amenities.push(parseInt(v.substring(2, v.length)));
-                            }
+                $( "#parkList" ).listview({ }).empty();
+                registerClickEvent([lon, lat]);
+                var currentLocation = [lon, lat];
+                $.when(getData.getAmenities(), getData.getNearbyParks(currentLocation)).done(function(amentityData, parkData){
+                    var allAmenities = {};
+                    amentityData.map(function(amenity){
+                        if(!(amenity.park_id in allAmenities)) {
+                            allAmenities[amenity.park_id] = {};
                         }
-                        console.log(amenities);
-                        
-                        data.map(function(park){
-                            park.distance = (park.point_location ? getDistanceFromLatLonInMiles(currentLocation[1],currentLocation[0],park.point_location.coordinates[1],park.point_location.coordinates[0]) : "N/A");
-                            parks[park.id] = park;
-                        });
-                        data = data.sort(function(a,b) {
-                            if(a.distance < b.distance) {
+                        allAmenities[amenity.park_id][amenity.amenity_type_id] = true;
+                    });
+                    console.log(allAmenities);
+
+                    var amenities = [];
+                    for(v in getUrlVars())
+                    {
+                        if(v.substring(0,2) === "cb") {
+                            amenities.push(parseInt(v.substring(2, v.length)));
+                        }
+                    }
+                    console.log(amenities);
+
+                    parkData = parkData
+                        .filter(function(park) {
+                            for(var i; i < amenities.length; ++i) {
+                                if(!(park.id_ in allAmenities) || !(amenities[i] in allAmenities[park.id_])) {
+                                    return false;
+                                }
+                            }
+                            return true;
+                        })
+                        .sort(function(a,b) {
+                            if(a.distance_ < b.distance_) {
                                 return -1;
                             }
                             return 1;
                         });
-                        data.map(function(park){
-                            console.log(park);
-                            //$("#parkList").append('<li><a href="#" class="show-map" data-transition="slide" rel="'+park.id+'">'+park.park_name+'</a></li>').listview('refresh');
-                            $("#parkList").append('<li><a href="#" class="show-map" data-transition="slide" rel="'+park.id+'">'+park.park_name+' ('+ park.distance.toFixed(1) +' mi)</a></li>').listview('refresh');
-                        });
-                    }
+                    parkData.map(function(park){
+                        console.log(park);
+                        $("#parkList").append('<li><a href="#" class="show-map" data-transition="slide" rel="'+park.id_+'">'+park.park_name_+' ('+ park.distance_.toFixed(1) +' mi)</a></li>').listview('refresh');
+                    });
                 });
             }
 
             function createMap(){
+                var customControl = L.Control.extend({
+                    options: {
+                        position: 'topleft'
+                    },
+                    onAdd: function (map) {
+                        var container = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom');
+                        container.innerHTML = '<button type="button" class="btn btn-primary">Back to Search</button>';
+
+                        container.style.backgroundColor = 'white';
+                        container.style.width = '100px';
+                        container.style.height = '30px';
+
+                        container.onclick = function(){
+                            console.log('buttonClicked');
+                            window.location = 'index-spa.html';
+                        }
+                        return container;
+                    }
+                });
                 var map = L.map('mapid');
                 map.addControl(new customControl());
                 map.on('geosearch_showlocation', function(result) {
                     var currentLocation = [result.Location.X, result.Location.Y];
-                    registerClickEvent(currentLocation);
-                    getParks(currentLocation);
+                    //getData.getParks(currentLocation);
+                    refreshResults(map, currentLocation[0], currentLocation[1]);
                 });
                 return map;
             }
-
-            var customControl = L.Control.extend({
-
-                options: {
-                    position: 'topleft'
-                },
-
-                onAdd: function (map) {
-                    var container = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom');
-                    container.innerHTML = '<button type="button" class="btn btn-primary">Back to Search</button>';
-
-                    container.style.backgroundColor = 'white';
-                    container.style.width = '100px';
-                    container.style.height = '30px';
-
-                    container.onclick = function(){
-                        console.log('buttonClicked');
-                        window.location = 'index-spa.html';
-                    }
-                    return container;
-                },
-
-              });
         </script>
     </body>
 </html>

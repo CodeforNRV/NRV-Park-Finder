@@ -32,80 +32,83 @@
             
             function createMap(){
                 map = L.map('mapid').setView([getUrlVars()["lat"], getUrlVars()["lon"] ], 13);
-                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                     attribution: '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                 }).addTo(map);
+                return map;
             }
             
-            function getParkById(parkId){
-                var parks = {};
+            function updateMap(parkId, currentMarker){
                 var i;
-                //$.ajax("https://parks.api.codefornrv.org/parks",{
-                $.ajax("https://parks.api.codefornrv.org/parks_with_geojson",{
-                //$.ajax("parks_placeholder.json",{
-                    dataType:"json",
-                    success: function(data) {
-                        for(i=0; i<data.length; ++i)
-                        {
-                            if(data[i].id == parkId) {
-                                var currentMarker = L.marker([getUrlVars()["lat"], getUrlVars()["lon"]]).addTo(map);
-                                currentMarker.bindPopup("Current location").openPopup();
-                                var targetMarker = L.marker([data[i].point_location.coordinates[1], data[i].point_location.coordinates[0]]).addTo(map);
-                                targetMarker.bindPopup(
-                                    data[i].park_name + "<br /><a href='park.html?id="+parkId+"'>More Information</a>"
-                                ).openPopup();
-                                $('#mapid').height($('body').height()*.95+'px');
-                                map.invalidateSize();
-                                var group = new L.featureGroup([currentMarker, targetMarker]);
-                                map.fitBounds(group.getBounds(),{padding:[50,50]});
-                                return data[i];
-                            }
+                getData.getParks().then(function(data) {
+                    for(i=0; i<data.length; ++i)
+                    {
+                        if(data[i].id == parkId) {
+                            var targetMarker = L.marker([data[i].point_location.coordinates[1], data[i].point_location.coordinates[0]]).addTo(map);
+                            targetMarker.bindPopup(
+                                data[i].park_name + "<br /><a href='park.html?id="+parkId+"'>More Information</a>"
+                            ).openPopup();
+                            $('#mapid').height($('body').height()*.95+'px');
+                            map.invalidateSize();
+                            var group = new L.featureGroup([currentMarker, targetMarker]);
+                            map.fitBounds(group.getBounds(),{padding:[50,50]});
+                            return data[i];
                         }
-                        alert("Invalid link - redirecting to search page");
-                        window.location = "index.html";
                     }
+                    alert("Invalid link - redirecting to search page");
+                    window.location = "index.html";
+                }).fail(function(err){
+                    alert(err);
                 });
             }
             
-            function detectRefresh() {
-                return performance.navigation.type == 1 && getUrlVars()["lat"];
+            function updateLocation(currentMarker) {
+                geoLocation.getLocation().then(function(position) {
+                    currentMarker.setLatLng(new L.LatLng(position.coords.latitude, position.coords.longitude));
+                    //currentMarker.setIcon(new refreshIcon());
+                    console.log("updated location to " + [position.coords.latitude, position.coords.longitude]);
+                }).fail(function(err) {
+                    showError(err);
+                });
             }
             
-            function updateLocation() {
-                navigator.geolocation.getCurrentPosition(showPosition, showError, {maximumAge: 5000, timeout:5000});
-            }
-            
-            function showPosition(position) {
-                window.location = "map.html?id=" + getUrlVars()["id"] + "&lat=" + position.coords.latitude + "&lon=" + position.coords.longitude + "&location=on";
-            }
+            /*var refreshIcon = L.Icon.extend({
+                options: {
+                    iconUrl: new url,
+                    iconSize: [30,35],
+                    shadowAnchor: [8, 20],
+                    shadowSize: [25, 18],
+                    iconSize: [20, 25],
+                    iconAnchor: [8, 30] // horizontal puis vertical
+                }
+            });*/
             
             function showError(error) {
                 switch(error.code) {
                     case error.PERMISSION_DENIED:
-                        alert("User denied the request for Geolocation.");
+                        console.log("User denied the request for Geolocation.");
                         break;
                     case error.POSITION_UNAVAILABLE:
-                        alert("Location information is unavailable.");
+                        console.log("Location information is unavailable.");
                         break;
                     case error.TIMEOUT:
-                        alert("The request to get user location timed out.");
+                        console.log("The request to get user location timed out.");
                         break;
                     case error.UNKNOWN_ERROR:
-                        alert("An unknown error occurred.");
+                        console.log("An unknown error occurred.");
                         break;
                 }
                 uncheck();
             }
             
             $(document).ready(function() {
-                if(detectRefresh()) {
-                    var result = confirm("Update your location?");
-                    if(result) {
-                        updateLocation();
-                    }
-                }                
-                createMap();
-                getParkById(getUrlVars()["id"]);
+                var map = createMap();
+                var currentMarker = L.marker([getUrlVars()["lat"], getUrlVars()["lon"]]).addTo(map);
+                currentMarker.bindPopup("Current location").openPopup();
+                if(getUrlVars()["location"] == "on") {
+                    setInterval(function(){ updateLocation(currentMarker); }, 3000);
+                }
+                updateMap(getUrlVars()["id"], currentMarker);
             });
         </script>
     </body>
