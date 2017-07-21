@@ -3,6 +3,7 @@
         <link rel="stylesheet" href="js/leaflet/leaflet.css" />
         <link rel="stylesheet" href="css/l.geosearch.css" />
         <link rel="stylesheet" href="css/misc.css" />
+        <link rel="stylesheet" href="css/jquery.mobile-1.4.5.min.css">
         <style>
             body {
                 padding: 0;
@@ -26,18 +27,19 @@
         </div>
         <script src="https://npmcdn.com/leaflet@1.0.0-rc.2/dist/leaflet.js"></script>
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+        <script src="js/jquery.mobile-1.4.5.min.js"></script>
         <script src="js/misc.js"></script>
         <script type="text/javascript">
             var map;
             
             function createMap(){
-                map = L.map('mapid').setView([getUrlVars()["lat"], getUrlVars()["lon"] ], 13);
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                map = L.map('mapid', {closePopupOnClick: false}).setView([getUrlVars()["lat"], getUrlVars()["lon"] ], 13);
+                L.tileLayer('https://api.mapbox.com/styles/v1/nealf/cj4a7oll139od2spe6ckgufjq/tiles/256/{z}/{x}/{y}?access_token=pk.eyJ1IjoibmVhbGYiLCJhIjoiNmM4MGQ3M2UzNmVlMTY0OWNmZDhiZjk0YWZlYzQ4OTYifQ.VEiV66Tl7sjD5n-bDLjbhw', {
                     attribution: '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                 }).addTo(map);
                 return map;
             }
-            
+                    
             function updateMap(parkId, currentMarker){
                 var i;
                 getData.getParks().then(function(data) {
@@ -51,7 +53,10 @@
                             $('#mapid').height($('body').height()*.95+'px');
                             map.invalidateSize();
                             var group = new L.featureGroup([currentMarker, targetMarker]);
-                            map.fitBounds(group.getBounds(),{padding:[50,50]});
+                            map.fitBounds(group.getBounds().pad(0.3));
+                            $('#googleMaps').button().click(function(){
+                                window.location = getGoogleMapsLink([getUrlVars()["lat"], getUrlVars()["lon"]], [data[i].point_location.coordinates[1],data[i].point_location.coordinates[0]]);
+                            });
                             return data[i];
                         }
                     }
@@ -62,9 +67,27 @@
                 });
             }
             
-            function updateLocation(currentMarker) {
+            var command = L.control({position: 'bottomright'});
+
+            command.onAdd = function (map) {
+                var div = L.DomUtil.create('div', 'command');
+                div.innerHTML = '<form style="font-weight:bold;"><input id="googleMaps" type="button" value="Google Maps Directions" /><input id="command" type="checkbox"/><label id="command-label" for="command">Update Location Real-Time</label></form>'; 
+                return div;
+            };
+            
+            function getGoogleMapsLink(currentLocation, targetLocation)
+            {
+                return "https://www.google.com/maps/dir/'"+currentLocation[0]+","+currentLocation[1]+"'/"+targetLocation[0]+","+targetLocation[1]; 
+            }
+            
+            function updateLocation(map, currentMarker) {
+                if(!$('#command').is(':checked'))
+                {
+                    return;
+                }
                 geoLocation.getLocation().then(function(position) {
                     currentMarker.setLatLng(new L.LatLng(position.coords.latitude, position.coords.longitude));
+                    //fitBounds(map, getAllMarkers(map));
                     //currentMarker.setIcon(new refreshIcon());
                     console.log("updated location to " + [position.coords.latitude, position.coords.longitude]);
                 }).fail(function(err) {
@@ -101,14 +124,42 @@
                 uncheck();
             }
             
+            function fitBounds(map, markers) {
+                map.invalidateSize();
+                var group = new L.featureGroup(markers);
+                map.fitBounds(group.getBounds().pad(0.3));
+            }
+            
+            function getAllMarkers(map) {
+
+                var allMarkers = [];
+
+                map.eachLayer(function (ml) {
+                    if (ml._latlng) {
+                        allMarkers.push(ml);
+                    }
+                });
+                
+                console.log(allMarkers);
+                return allMarkers;
+            }
+            
             $(document).ready(function() {
                 var map = createMap();
                 var currentMarker = L.marker([getUrlVars()["lat"], getUrlVars()["lon"]]).addTo(map);
                 currentMarker.bindPopup("Current location").openPopup();
+                command.addTo(map);
                 if(getUrlVars()["location"] == "on") {
-                    setInterval(function(){ updateLocation(currentMarker); }, 3000);
+                    setInterval(function(){ updateLocation(map, currentMarker); }, 3000);
+                    $('#command').prop('checked', true).checkboxradio();
+                } else {
+                    $('#command').hide();
+                    $('#command-label').hide();
                 }
-                updateMap(getUrlVars()["id"], currentMarker);
+                updateMap(getUrlVars()["id"], currentMarker);                
+                $(window).on("orientationchange",function(){
+                    map.invalidateSize();
+                });
             });
         </script>
     </body>

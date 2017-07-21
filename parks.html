@@ -24,7 +24,7 @@ and open the template in the editor.
             <div data-role="header">
                 <h1>Nearest Parks</h1>
                 <h3>Click to see the park on a map.</h3>
-                <input type="button" value="Update Location" onclick="updateLocation()" style="float:left;" />
+                <input id="updateLocation" type="button" value="Update Location" onclick="updateLocation()" style="float:left;" />
             </div>
             <div role="main" class="ui-content">
                 <ul id='parkList' data-role="listview"></ul>
@@ -70,6 +70,7 @@ and open the template in the editor.
                 }
                 else
                 {
+                    $('#updateLocation').closest('.ui-btn').hide();
                     var provider = new L.GeoSearch.Provider.OpenStreetMap();
                     var phrase = getUrlVars()["address"];
                     var retries = 0;
@@ -82,13 +83,13 @@ and open the template in the editor.
                         if(retries == 0) {
                             retries++;
                             provider = new L.GeoSearch.Provider.Esri();
-                            searcher.geosearch(phrase);
+                            searcher.geosearch(phrase + " virginia");
                         } else {
                             alert("Could not find that address with any providers");
                             window.location = "index.html";
                         }
                     });
-                    searcher.geosearch(phrase);
+                    searcher.geosearch(phrase + " virginia");
                 }
             });
 
@@ -138,6 +139,10 @@ and open the template in the editor.
                             }
                             return 1;
                         });
+                    if (parkData.length == 0) {
+                        alert("Could not find any close parks fitting those criteria");
+                        window.location = "index.html";
+                    }
                     parkData.map(function(park){
                         console.log(park);
                         $("#parkList").append('<li><a href="#" class="show-map" data-transition="slide" rel="'+park.id_+'">'+park.park_name_+' ('+ park.distance_.toFixed(1) +' mi)</a></li>').listview('refresh');
@@ -160,7 +165,7 @@ and open the template in the editor.
 
                         container.onclick = function(){
                             console.log('buttonClicked');
-                            window.location = 'index-spa.html';
+                            window.location = "index.html";
                         }
                         return container;
                     }
