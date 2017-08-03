@@ -16,7 +16,7 @@ and open the template in the editor.
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     </head>
     <body>
-        <div data-role="page" id="page1" style="display:none;">
+        <div data-role="page" id="page1">
             <div class="jumbotron header-bg">
                 <h1 style="color:white; background-color:black; opacity:0.7;">NRV Park Search</h1>
             </div>
@@ -39,7 +39,6 @@ and open the template in the editor.
                     </div>
                 </div>
             </div>
-            <button id="loading" class="show-page-loading-msg" data-theme="b" data-textonly="false" data-textvisible="true" data-msgtext="Loading..." data-icon="arrow-r" data-iconpos="right">Loading...</button>
         </div>
         <!-- jquery:  1.12.4 -->
         <script src="js/jquery.min.js"></script>
@@ -49,16 +48,39 @@ and open the template in the editor.
         <script type="text/javascript">            
             
             $( document ).ajaxStart(function() {
-                // do nothing
+                busy(true);
             });
             $( document ).ajaxComplete(function() {
-                $.mobile.loading( "hide" );
-                $("#page1").show();
+                busy(false);
             });
             $( document ).ajaxError(function() {
-                $.mobile.loading( "hide" );
-                $("#page1").show();
+                busy(false);
             });
+            
+            function busy(isBusy) {
+                if(isBusy) {
+                    $.mobile.loading( "show" );
+                } else {
+                    $.mobile.loading( "hide" );
+                }
+            }
+            
+            function addAmenities(data)
+            {
+                data.map(function(amenity) {
+                    addAmenity([amenity.id, amenity.amenity_name])
+                });
+            }
+            
+            function addAmenity(amenity)
+            {
+                id = amenity[0];
+                name = amenity[1];
+                container = $("#amenities");
+                $('<label />', {'for': 'cb'+id, id: 'cbl'+id}).appendTo(container);
+                $('#cbl'+id).html('<input type="checkbox" id="cb'+id+'" name="cb'+id+'" value="t" />'+name);
+                $('#cbl'+id).trigger('create');
+            }
             
             $("form").submit(function(event){
                 if($("#address").val()=='' && !$("#location").is(':checked')) {
@@ -78,10 +100,20 @@ and open the template in the editor.
             $("#location").change(function () {
                 $("#address").prop( "disabled", this.checked );
                 if(this.checked) {
-                    //page1.getLocation();
                     $(".address").hide();
+                    busy(true);
+                    geoLocation.getLocation().then(function(position) {
+                        $("#lat").val(position.coords.latitude);
+                        $("#lon").val(position.coords.longitude);
+                        busy(false);
+                    }).fail(function(err) {
+                        $("#location").prop('checked', false);
+                        $("#location").removeAttr('checked').checkboxradio("refresh");
+                        $("#location").trigger("change");
+                        busy(false);
+                        showError(err);
+                    });
                 } else {
-                    $("#locationArea").hide();
                     $(".address").show();
                 }
             });
@@ -90,30 +122,12 @@ and open the template in the editor.
                 if(getCookie("ack")!=1 || getUrlVars()['dev']==1) {
                     window.location = "intro.html";
                 }
-                $.mobile.loading( "show" );
                 $("#address").val("");
-                $("#loading").hide();
-                $("#locationArea").hide();
-                $("#gettingLocation").hide();
-                var byLocation = document.getElementById("byLocation");
-                var amenities = [];
-                $.ajax("https://parks.api.codefornrv.org/amenity_type",{
-                //$.ajax("amenity_type_placeholder",{
-                    dataType:"json",
-                    success: function(data) {
-                        data.map(function(amenity) {
-                            amenities.push([amenity.id, amenity.amenity_name]);
-                        });
-                        amenities.map(function(amenity) {
-                            id = amenity[0];
-                            name = amenity[1];
-                            container = $("#amenities");
-                            $('<label />', {'for': 'cb'+id, id: 'cbl'+id}).appendTo(container);
-                            $('#cbl'+id).html('<input type="checkbox" id="cb'+id+'" name="cb'+id+'" value="t" />'+name);
-                            $('#cbl'+id).trigger('create');
-                        });
-                        $("#amenities").hide();
-                    }
+                getData.getAmenities().then(function(data) {
+                    addAmenities(data);
+                    $("#amenities").hide();
+                }).fail(function(err) {
+                    alert(err);
                 });
                 
                 var latitude = getUrlVars()["lat"];
@@ -126,7 +140,7 @@ and open the template in the editor.
                     $("#location").checkboxradio('refresh');
                     $("#lat").val(latitude);
                     $("#lon").val(longitude);
-                }           
+                }    
             });
         </script>
     </body>
